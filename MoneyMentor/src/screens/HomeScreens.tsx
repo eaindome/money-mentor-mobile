@@ -91,18 +91,18 @@ const HomeScreen = () => {
           {/* Feature Cards */}
           <View style={styles.featuresContainer}>
             <FeatureCard
-              icon="trophy"
-              title="Micro-Challenges"
-              description="Build confidence with bite-sized financial wins"
-              delay={200}
-              screenToNavigate="ChallengeSetup"
-            />
-            <FeatureCard
               icon="chart-line"
               title="Investment Simulator"
               description="Practice investing without risk"
               delay={400}
               screenToNavigate="SimulationInput"
+            />
+            <FeatureCard
+              icon="trophy"
+              title="Micro-Challenges"
+              description="Build confidence with bite-sized financial wins"
+              delay={200}
+              screenToNavigate="ChallengeSetup"
             />
           </View>
         </View>

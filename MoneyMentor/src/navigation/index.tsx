@@ -5,6 +5,7 @@ import HomeScreen from '../screens/HomeScreens';
 import SimulationInputScreen from '../screens/SimulationInputScreen';
 import SimulationResultsScreen from '../screens/SimulationResultsScreen';
 import ChallengeSetupScreen from '../screens/ChallengeSetupScreen';
+import ChallengeDashboardScreen from '../screens/ChallengeDashboardScreen';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -18,6 +19,7 @@ export type RootStackParamList = {
     frequency: number
   }
   ChallengeSetup: undefined;
+  ChallengeDashboard: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -35,6 +37,7 @@ const RootNavigator = () => {
       <Stack.Screen name="SimulationInput" component={SimulationInputScreen} />
       <Stack.Screen name="SimulationResults" component={SimulationResultsScreen} />
       <Stack.Screen name="ChallengeSetup" component={ChallengeSetupScreen} />
+      <Stack.Screen name="ChallengeDashboard" component={ChallengeDashboardScreen} />
     </Stack.Navigator>
   );
 };

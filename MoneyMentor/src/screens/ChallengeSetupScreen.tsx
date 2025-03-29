@@ -7,7 +7,8 @@ import {
   ScrollView, 
   TouchableOpacity, 
   Animated, 
-  Dimensions 
+  Dimensions,
+  Image
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,6 +24,8 @@ import StepIndicator from '../components/ui/StepIndicator';
 import FormDropdown from '../components/form/FormDropdown';
 import FormSlider from '../components/form/FormSlider';
 import QuestCard from '../components/cards/QuestCard';
+import ProgressBadge from '../components/ui/ProgressBadge';
+import Tip from '../components/ui/Tips';
 
 type RootStackParamList = {
   Home: undefined;
@@ -60,10 +63,10 @@ const FINANCIAL_FEARS = ['Losing Money', 'Not Enough Savings', 'Market Volatilit
 
 // Step titles and subtitles
 const STEPS = [
-  { title: "Hero Profile", subtitle: "Tell us about your financial journey" },
+  { title: "Hero Profile", subtitle: "Who are you as a financial hero?" },
   { title: "Your Quest", subtitle: "Choose your challenge path" },
-  { title: "Power Level", subtitle: "Set your commitment and goals" },
-  { title: "Ready to Begin!", subtitle: "Review and start your challenge" }
+  { title: "Power Level", subtitle: "How far will you go?" },
+  { title: "Ready!", subtitle: "Review and embark" }
 ];
 
 const ChallengeSetupScreen = () => {
@@ -71,6 +74,7 @@ const ChallengeSetupScreen = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const bounceAnim = useRef(new Animated.Value(1)).current;
   
   // Initialize form state
   const [formData, setFormData] = useState<ChallengeFormData>({
@@ -86,8 +90,53 @@ const ChallengeSetupScreen = () => {
     financialFear: '',
   });
 
+  // Progress tracking
+  const [stepProgress, setStepProgress] = useState([0, 0, 0, 0]);
+  
+  useEffect(() => {
+    // Calculate progress for each step
+    const newProgress = [...stepProgress];
+    
+    // Step 1 progress (4 fields)
+    const step0Fields = ['employmentType', 'spendingBehavior', 'debtSituation', 'investmentPreference'];
+    const step0Complete = step0Fields.filter(field => !!formData[field as keyof ChallengeFormData]).length;
+    newProgress[0] = step0Complete / step0Fields.length;
+    
+    // Step 2 progress (3 fields)
+    const step1Fields = ['financialGoal', 'challengeType', 'challengeDuration'];
+    const step1Complete = step1Fields.filter(field => !!formData[field as keyof ChallengeFormData]).length;
+    newProgress[1] = step1Complete / step1Fields.length;
+    
+    // Step 3 progress (3 fields)
+    const step2Fields = ['savingsRate', 'commitmentLevel', 'financialFear'];
+    // savingsRate and commitmentLevel already have default values, so only check financialFear
+    const step2Complete = 2 + (formData.financialFear ? 1 : 0);
+    newProgress[2] = step2Complete / 3;
+    
+    // Step 4 progress is based on overall completion
+    const totalFieldsComplete = step0Complete + step1Complete + step2Complete;
+    const totalFields = step0Fields.length + step1Fields.length + 3; // 3 fields in step 3
+    newProgress[3] = totalFieldsComplete / totalFields;
+    
+    setStepProgress(newProgress);
+  }, [formData]);
+
   // Animations for step transitions
   const transitionToNextStep = () => {
+    // Bounce animation for button
+    Animated.sequence([
+      Animated.timing(bounceAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bounceAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      })
+    ]).start();
+    
     // Fade out
     Animated.timing(fadeAnim, {
       toValue: 0,
@@ -172,11 +221,41 @@ const ChallengeSetupScreen = () => {
   // Handle challenge creation
   const createChallenge = () => {
     console.log('Challenge created:', formData);
-    // TODO: POST to /challenges/ endpoint
-    
-    // Navigate to dashboard
-    // navigation.navigate('ChallengeDashboard');
-    navigation.navigate('Home'); // For now
+    // Vibrant animation for submit
+    Animated.sequence([
+      Animated.timing(bounceAnim, {
+        toValue: 0.9,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bounceAnim, {
+        toValue: 1.05,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(bounceAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      // TODO: POST to /challenges/ endpoint
+      
+      // Navigate to dashboard
+      // navigation.navigate('ChallengeDashboard');
+      navigation.navigate('Home'); // For now
+    });
+  };
+
+  // Get the icon for each step
+  const getStepIcon = (step: number): string => {
+    switch(step) {
+      case 0: return 'account-outline';
+      case 1: return 'map-marker-path';
+      case 2: return 'lightning-bolt';
+      case 3: return 'flag-checkered';
+      default: return 'checkbox-marked-circle-outline';
+    }
   };
 
   // Render step content based on current step
@@ -191,6 +270,10 @@ const ChallengeSetupScreen = () => {
             }}
           >
             <QuestCard title="Build Your Hero Profile" icon="account-outline">
+              <Text style={styles.stepDescription}>
+                Tell us about yourself, so we can craft the perfect challenge for you.
+              </Text>
+              
               <FormDropdown
                 label="What's your employment status?"
                 placeholder="Select employment type"
@@ -198,6 +281,12 @@ const ChallengeSetupScreen = () => {
                 value={formData.employmentType}
                 onSelect={(value) => updateFormData('employmentType', value)}
               />
+              
+              {formData.employmentType && (
+                <Tip
+                  text={`Your ${formData.employmentType.toLowerCase()} status helps us match challenges to your income pattern.`}
+                />
+              )}
               
               <FormDropdown
                 label="How would you describe your spending?"
@@ -222,13 +311,15 @@ const ChallengeSetupScreen = () => {
                 value={formData.investmentPreference}
                 onSelect={(value) => {
                   updateFormData('investmentPreference', value);
-                  // Show feedback message
-                  if (value === 'Balanced') {
-                    // TODO: Show toast or feedback
-                    console.log("Great choice! Balanced investors have succeeded 85% of the time!");
-                  }
                 }}
               />
+              
+              {formData.investmentPreference === 'Balanced' && (
+                <Tip
+                  text="Great choice! Balanced investors have succeeded 85% of the time!"
+                  type="success"
+                />
+              )}
             </QuestCard>
           </Animated.View>
         );
@@ -242,6 +333,10 @@ const ChallengeSetupScreen = () => {
             }}
           >
             <QuestCard title="Choose Your Quest" icon="map-marker-path">
+              <Text style={styles.stepDescription}>
+                Select the challenge that fits your financial journey.
+              </Text>
+              
               <FormDropdown
                 label="What's your financial goal?"
                 placeholder="Select financial goal"
@@ -249,6 +344,18 @@ const ChallengeSetupScreen = () => {
                 value={formData.financialGoal}
                 onSelect={(value) => updateFormData('financialGoal', value)}
               />
+              
+              {formData.financialGoal && (
+                <View style={styles.goalCard}>
+                  <MaterialCommunityIcons name="target" size={20} color={colors.emerald.DEFAULT} />
+                  <Text style={styles.goalText}>
+                    {formData.financialGoal === 'Save GHS 500' ? "You're 10% there already!" : 
+                     formData.financialGoal === 'Build Emergency Fund' ? "65% of heroes succeed!" :
+                     formData.financialGoal === 'Start Investing' ? "A wise long-term choice!" :
+                     "Great goal! Let's make it happen!"}
+                  </Text>
+                </View>
+              )}
               
               <FormDropdown
                 label="What type of challenge interests you?"
@@ -265,6 +372,15 @@ const ChallengeSetupScreen = () => {
                 value={formData.challengeDuration}
                 onSelect={(value) => updateFormData('challengeDuration', value)}
               />
+              
+              {formData.challengeDuration && (
+                <Tip
+                  text={formData.challengeDuration === '7 days' ? "Quick win! Perfect for beginners." :
+                        formData.challengeDuration === '90 days' ? "Epic quest! You'll see major results." :
+                        "Great timeframe for building new habits!"}
+                  type="info"
+                />
+              )}
             </QuestCard>
           </Animated.View>
         );
@@ -278,6 +394,10 @@ const ChallengeSetupScreen = () => {
             }}
           >
             <QuestCard title="Set Your Power Level" icon="lightning-bolt">
+              <Text style={styles.stepDescription}>
+                How far are you willing to go on this quest?
+              </Text>
+              
               <FormSlider
                 label="What percentage of income can you save?"
                 value={formData.savingsRate}
@@ -288,6 +408,22 @@ const ChallengeSetupScreen = () => {
                 onValueChange={(value) => updateFormData('savingsRate', value)}
               />
               
+              {formData.savingsRate > 0 && (
+                <View style={styles.savingsEstimate}>
+                  <MaterialCommunityIcons 
+                    name={formData.savingsRate > 25 ? "trending-up" : "chart-line"} 
+                    size={18} 
+                    color={colors.emerald.DEFAULT} 
+                  />
+                  <Text style={styles.savingsEstimateText}>
+                    {formData.savingsRate < 10 ? "Every journey starts with small steps!" :
+                     formData.savingsRate < 20 ? "Solid savings rate! You're on track." :
+                     formData.savingsRate < 30 ? "Impressive! You're outpacing 70% of people." :
+                     "Hero mode activated! You're in the top 10%!"}
+                  </Text>
+                </View>
+              )}
+              
               <FormSlider
                 label="How committed are you to this challenge?"
                 value={formData.commitmentLevel}
@@ -295,7 +431,7 @@ const ChallengeSetupScreen = () => {
                 maximumValue={3}
                 step={1}
                 formatLabel={(value) => {
-                  return value === 1 ? "Low" : value === 2 ? "Medium" : "High";
+                  return value === 1 ? "Casual" : value === 2 ? "Dedicated" : "All In";
                 }}
                 onValueChange={(value) => updateFormData('commitmentLevel', value)}
               />
@@ -307,6 +443,13 @@ const ChallengeSetupScreen = () => {
                 value={formData.financialFear}
                 onSelect={(value) => updateFormData('financialFear', value)}
               />
+              
+              {formData.financialFear && (
+                <Tip
+                  text="Facing your fears is the first step to conquering them. We'll help you build confidence."
+                  type="motivation"
+                />
+              )}
             </QuestCard>
           </Animated.View>
         );
@@ -320,41 +463,75 @@ const ChallengeSetupScreen = () => {
             }}
           >
             <QuestCard title="Your Challenge Awaits" icon="flag-checkered">
+              <Text style={styles.stepDescription}>
+                Here's the quest you've designed. Ready to begin?
+              </Text>
+              
               <View style={styles.summaryContainer}>
-                <View style={styles.summarySection}>
-                  <Text style={styles.summaryTitle}>Your Profile</Text>
-                  <View style={styles.summaryItem}>
-                    <Text style={styles.summaryLabel}>Employment:</Text>
-                    <Text style={styles.summaryValue}>{formData.employmentType || "Not set"}</Text>
+                <View style={styles.heroCard}>
+                  <View style={styles.heroIconCircle}>
+                    <MaterialCommunityIcons 
+                      name="shield-account" 
+                      size={28} 
+                      color={colors.white} 
+                    />
                   </View>
-                  <View style={styles.summaryItem}>
-                    <Text style={styles.summaryLabel}>Spending:</Text>
-                    <Text style={styles.summaryValue}>{formData.spendingBehavior || "Not set"}</Text>
+                  <View style={styles.heroDetails}>
+                    <Text style={styles.heroTitle}>Your Hero Profile</Text>
+                    <Text style={styles.heroSubtitle}>
+                      {formData.employmentType || "Financial Hero"} • {formData.spendingBehavior || "Balanced"} Spender
+                    </Text>
                   </View>
                 </View>
                 
-                <View style={styles.summarySection}>
-                  <Text style={styles.summaryTitle}>Your Challenge</Text>
-                  <View style={styles.summaryItem}>
+                <View style={styles.questSummary}>
+                  <View style={styles.summaryRow}>
+                    <View style={styles.summaryIcon}>
+                      <MaterialCommunityIcons name="flag" size={16} color={colors.emerald.DEFAULT} />
+                    </View>
                     <Text style={styles.summaryLabel}>Goal:</Text>
                     <Text style={styles.summaryValue}>{formData.financialGoal || "Not set"}</Text>
                   </View>
-                  <View style={styles.summaryItem}>
-                    <Text style={styles.summaryLabel}>Type:</Text>
+                  
+                  <View style={styles.summaryRow}>
+                    <View style={styles.summaryIcon}>
+                      <MaterialCommunityIcons name="puzzle" size={16} color={colors.emerald.DEFAULT} />
+                    </View>
+                    <Text style={styles.summaryLabel}>Challenge:</Text>
                     <Text style={styles.summaryValue}>{formData.challengeType || "Not set"}</Text>
                   </View>
-                  <View style={styles.summaryItem}>
+                  
+                  <View style={styles.summaryRow}>
+                    <View style={styles.summaryIcon}>
+                      <MaterialCommunityIcons name="calendar-range" size={16} color={colors.emerald.DEFAULT} />
+                    </View>
                     <Text style={styles.summaryLabel}>Duration:</Text>
                     <Text style={styles.summaryValue}>{formData.challengeDuration || "Not set"}</Text>
                   </View>
+                  
+                  <View style={styles.summaryRow}>
+                    <View style={styles.summaryIcon}>
+                      <MaterialCommunityIcons name="percent" size={16} color={colors.emerald.DEFAULT} />
+                    </View>
+                    <Text style={styles.summaryLabel}>Savings:</Text>
+                    <Text style={styles.summaryValue}>{formData.savingsRate}% of income</Text>
+                  </View>
                 </View>
                 
-                <View style={styles.estimateContainer}>
-                  <MaterialCommunityIcons name="cash-multiple" size={24} color={colors.emerald.DEFAULT} />
-                  <Text style={styles.estimateText}>
-                    You're on track to save approximately {calculateEstimatedSavings()}!
-                  </Text>
-                </View>
+                <LinearGradient
+                  colors={['rgba(72, 187, 120, 0.1)', 'rgba(72, 187, 120, 0.2)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.estimateContainer}
+                >
+                  <MaterialCommunityIcons name="trophy" size={24} color={colors.emerald.DEFAULT} />
+                  <View style={styles.estimateTextContainer}>
+                    <Text style={styles.estimateTitle}>Quest Reward</Text>
+                    <Text style={styles.estimateText}>
+                      You're on track to save approximately {calculateEstimatedSavings()}!
+                    </Text>
+                  </View>
+                </LinearGradient>
               </View>
             </QuestCard>
           </Animated.View>
@@ -371,9 +548,7 @@ const ChallengeSetupScreen = () => {
         colors={['#f0fff4', '#ffffff']}
         style={styles.gradient}
       >
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+        <View style={styles.scrollContent}
         >
           {/* Header */}
           <View style={styles.header}>
@@ -389,15 +564,9 @@ const ChallengeSetupScreen = () => {
             >
               <MaterialCommunityIcons name="chevron-left" size={28} color={colors.emerald.DEFAULT} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>New Challenge</Text>
+            <Text style={styles.headerTitle}>Hero's Journey</Text>
+            <ProgressBadge progress={currentStep === 3 ? stepProgress[3] : stepProgress[currentStep]} />
           </View>
-          
-          {/* Step Indicator */}
-          <StepIndicator 
-            steps={STEPS.length}
-            currentStep={currentStep}
-            labels={STEPS.map(step => step.title)}
-          />
           
           {/* Step Title */}
           <View style={styles.stepTitleContainer}>
@@ -411,25 +580,31 @@ const ChallengeSetupScreen = () => {
           {/* Navigation Buttons */}
           <View style={styles.navigationContainer}>
             {currentStep < 3 ? (
-              <Button
-                title="Continue"
-                onPress={transitionToNextStep}
-                variant="primary"
-                size="large"
-                rightIcon="chevron-right"
-              />
+              <Animated.View style={{ transform: [{ scale: bounceAnim }] }}>
+                <Button
+                  title={currentStep === 2 ? "Review Your Quest" : "Continue"}
+                  onPress={transitionToNextStep}
+                  variant="primary"
+                  size="large"
+                  rightIcon="chevron-right"
+                />
+              </Animated.View>
             ) : (
-              <View style={styles.submitButton}>
+              <Animated.View style={[
+                styles.submitButton, 
+                { transform: [{ scale: bounceAnim }] }
+              ]}>
                 <Button
                   title="Start My Challenge!"
                   onPress={createChallenge}
                   variant="primary"
                   size="large"
+                  rightIcon="sword"
                 />
-              </View>
+              </Animated.View>
             )}
           </View>
-        </ScrollView>
+        </View>
       </LinearGradient>
     </Container>
   );
@@ -440,12 +615,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
+    flex: 1,
     padding: 20,
+    justifyContent: 'space-between',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
     paddingTop: 20,
   },
@@ -453,10 +630,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.emerald.DEFAULT,
-    marginLeft: 8,
   },
   stepTitleContainer: {
     marginBottom: 16,
@@ -472,53 +648,133 @@ const styles = StyleSheet.create({
     color: colors.gray.DEFAULT,
     marginTop: 4,
   },
+  stepDescription: {
+    fontSize: 15,
+    color: colors.gray.DEFAULT,
+    marginBottom: 16,
+    lineHeight: 22,
+  },
   navigationContainer: {
     marginTop: 24,
     marginBottom: 20,
   },
   submitButton: {
-    backgroundColor: colors.emerald.DEFAULT,
     borderRadius: 12,
   },
   summaryContainer: {
     marginTop: 8,
   },
-  summarySection: {
+  heroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.gray.light,
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 16,
   },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.gray.dark,
-    marginBottom: 8,
+  heroIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.emerald.DEFAULT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  summaryItem: {
+  heroDetails: {
+    flex: 1,
+  },
+  heroTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.gray.dark,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: colors.gray.DEFAULT,
+    marginTop: 2,
+  },
+  questSummary: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.gray.light,
+  },
+  summaryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  summaryIcon: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
   },
   summaryLabel: {
     fontSize: 15,
     color: colors.gray.DEFAULT,
+    width: 80,
   },
   summaryValue: {
     fontSize: 15,
     fontWeight: '500',
     color: colors.gray.dark,
+    flex: 1,
   },
   estimateContainer: {
-    backgroundColor: 'rgba(72, 187, 120, 0.1)',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 8,
   },
+  estimateTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  estimateTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.emerald.DEFAULT,
+    marginBottom: 2,
+  },
   estimateText: {
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.emerald.dark,
+  },
+  goalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(72, 187, 120, 0.1)',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 16,
+  },
+  goalText: {
+    fontSize: 14,
     fontWeight: '500',
     color: colors.emerald.DEFAULT,
-    marginLeft: 12,
+    marginLeft: 8,
+    flex: 1,
+  },
+  savingsEstimate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(72, 187, 120, 0.08)',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 16,
+  },
+  savingsEstimateText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.emerald.dark,
+    marginLeft: 8,
     flex: 1,
   },
 });

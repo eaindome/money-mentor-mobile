@@ -12,6 +12,11 @@ export const colors = {
     dark: "#4B5563",
   },
   black: "#000000",
+  yellow: {
+    light: '#F9E79F',
+    DEFAULT: '#F4D03F',
+    dark: '#D4AC0D',
+  },
 };
 
 export default colors;
