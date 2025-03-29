@@ -17,6 +17,7 @@ export const colors = {
     DEFAULT: '#F4D03F',
     dark: '#D4AC0D',
   },
+  red: { light: '#FEE2E2', DEFAULT: '#EF4444', dark: '#B91C1C' },
 };
 
 export default colors;

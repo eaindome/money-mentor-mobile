@@ -8,12 +8,14 @@ import {
   TouchableOpacity, 
   Animated, 
   Dimensions,
-  Image
+  Image,
+  Alert
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import axios from 'axios';
 
 import Container from '../components/layout/Container';
 import Button from '../components/ui/Button';
@@ -49,6 +51,7 @@ type ChallengeFormData = {
   challengeType: string;
   commitmentLevel: number;
   financialFear: string;
+  Monthly_income: number;
 };
 
 // Form options
@@ -88,6 +91,7 @@ const ChallengeSetupScreen = () => {
     challengeType: '',
     commitmentLevel: 1,
     financialFear: '',
+    Monthly_income: 0
   });
 
   // Progress tracking
@@ -178,7 +182,7 @@ const ChallengeSetupScreen = () => {
     // Simple calculation for demo purposes
     const savingsPercent = formData.savingsRate / 100;
     const baseAmount = 1000; // Assume GHS 1000 monthly income
-    const monthlyAmount = baseAmount * savingsPercent;
+    const monthlyAmount = formData.Monthly_income * savingsPercent;
     
     // Get duration in days
     const durationMap: { [key: string]: number } = {
@@ -196,7 +200,7 @@ const ChallengeSetupScreen = () => {
   };
   
   // Handle challenge creation
-  const createChallenge = () => {
+  const createChallenge = async () => {
     console.log('Challenge created:', formData);
     // Vibrant animation for submit
     Animated.sequence([
@@ -215,12 +219,32 @@ const ChallengeSetupScreen = () => {
         duration: 100,
         useNativeDriver: true,
       })
-    ]).start(() => {
-      // TODO: POST to /challenges/ endpoint
-      
-      // Navigate to dashboard
-      // navigation.navigate('ChallengeDashboard');
-      navigation.navigate('Home'); // For now
+    ]).start(async () => {
+        if (!formData.employmentType || !formData.financialGoal || !formData.challengeType || !formData.challengeDuration) {
+            console.error('Missing required fields');
+            return; 
+          }
+        const payload = {
+            employment_type: formData.employmentType,
+            financial_goal: formData.financialGoal,
+            investment_preference: formData.investmentPreference,
+            savings_rate: formData.savingsRate,
+            spending_behavior: formData.spendingBehavior,
+            debt_situation: formData.debtSituation,
+            challenge_duration: parseInt(formData.challengeDuration.split(' ')[0]), // "30 days" -> 30
+            challenge_type: formData.challengeType,
+            commitment_level: formData.commitmentLevel === 1 ? 'Casual' : formData.commitmentLevel === 2 ? 'Dedicated' : 'All In',
+            financial_fear: formData.financialFear,
+            Monthly_income: formData.Monthly_income,
+          };
+          try {
+            const res = await axios.post('http://localhost:8000/challenges/', payload);
+            console.log('Challenge created:', res.data);
+            navigation.navigate('ChallengeDashboard');
+          } catch (error) {
+            console.error('Failed to create challenge:', error);
+            Alert.alert('Error', 'Failed to start challenge—try again!');
+          }
     });
   };
 

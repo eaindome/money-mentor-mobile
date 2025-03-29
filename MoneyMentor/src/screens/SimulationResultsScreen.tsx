@@ -14,11 +14,17 @@ type RootStackParamList = {
   Home: undefined;
   SimulationInput: undefined;
   SimulationResults: {
-    amount: number;
-    investmentType: string;
-    days: number;
-    deposits: number;
-    frequency: number;
+    simData: {
+      fund: string;
+      amount: number;
+      days: number;
+      deposit: string;
+      frequency: string;
+      ideal: { values: number[]; final: number };
+      real: { values: number[]; final: number };
+      difference: number;
+      desc: string;
+    };
   };
 };
 
@@ -28,233 +34,90 @@ type SimulationResultsScreenNavigationProp = NativeStackNavigationProp<
   'SimulationResults'
 >;
 
-// Investment type definitions with volatility and daily rates
-const INVESTMENT_TYPES = {
-  digiSave: { label: 'DigiSave', volatility: 0.0005, dailyRate: 0.00015, color: '#4299E1', description: "Your money stays safe while growing steadily - perfect for beginners." },
-  euroBond: { label: 'Eurobond', volatility: 0.001, dailyRate: 0.0003, color: '#38A169', description: "Like lending to reliable organizations who pay you back with interest." },
-  equityFund: { label: 'Equity Fund', volatility: 0.004, dailyRate: 0.0006, color: '#805AD5', description: "Own parts of successful companies. More ups and downs, but potentially higher growth." },
-};
+const INVESTMENT_TYPES = [
+  { label: 'DigiSave', value: 'DigiSave', color: '#4299E1', icon: 'shield-check', description: 'A secure savings option with minimal risk.' },
+  { label: 'Eurobond', value: 'Eurobond', color: '#38A169', icon: 'scale-balance', description: 'A stable investment in international bonds.' },
+  { label: 'GlobalTech', value: 'GlobalTech', color: '#D69E2E', icon: 'rocket-launch', description: 'A high-growth investment in global technology.' },
+];
 
-// Helper function to format currency
-const formatCurrency = (value: number): string => {
-  return `GHS ${value.toFixed(2)}`;
-};
-
-// Helper function to format percentage
-const formatPercentage = (value: number): string => {
-  return `${(value * 100).toFixed(1)}%`;
-};
+const formatCurrency = (value: number): string => `GHS ${value.toFixed(2)}`;
+const formatPercentage = (value: number): string => `${(value * 100).toFixed(1)}%`;
 
 const SimulationResultsScreen = () => {
   const navigation = useNavigation<SimulationResultsScreenNavigationProp>();
   const route = useRoute<SimulationResultsRouteProp>();
-  const { amount, investmentType, days, deposits, frequency } = route.params;
-  
+  const { simData } = route.params;
+  const deposits = simData.deposit ? Number(simData.deposit) : 0;
+  const frequency = simData.frequency;
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const chartAnim = useRef(new Animated.Value(0)).current;
 
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('compare'); // 'compare', 'ideal', or 'real'
-  
-  // Calculated results
+  const [activeTab, setActiveTab] = useState('compare');
   const [results, setResults] = useState({
-    ideal: {
-      finalAmount: 0,
-      totalGain: 0,
-      returnRate: 0,
-      growthData: [] as {amount: number, day: number}[],
-    },
-    real: {
-      finalAmount: 0,
-      totalGain: 0,
-      returnRate: 0,
-      growthData: [] as {amount: number, day: number}[],
-      worstDay: { day: 0, amount: 0 },
-      bestDay: { day: 0, amount: 0 },
-    },
-    difference: {
-      amount: 0,
-      percentage: 0,
-    }
+    ideal: { finalAmount: 0, growthData: [] as { amount: number, day: number }[] },
+    real: { finalAmount: 0, growthData: [] as { amount: number, day: number }[] },
+    difference: { amount: 0, percentage: 0 },
   });
 
-  // Animate on component mount
+  // Map simData to results
   useEffect(() => {
-    // Simulate API loading
-    setTimeout(() => {
-      calculateResults();
-      setIsLoading(false);
-
-      // Start animations
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(chartAnim, {
-          toValue: 1,
-          duration: 900,
-          delay: 200,
-          useNativeDriver: false,
-        })
-      ]).start();
-    }, 600);
-  }, []);
-
-  // Calculate simulation results
-  const calculateResults = () => {
-    const investmentInfo = INVESTMENT_TYPES[investmentType as keyof typeof INVESTMENT_TYPES] || INVESTMENT_TYPES.digiSave;
-    const { dailyRate, volatility } = investmentInfo;
-    
-    // Initialize data
-    let idealAmount = amount;
-    let realAmount = amount;
-    const idealData: {amount: number, day: number}[] = [{amount, day: 0}];
-    const realData: {amount: number, day: number}[] = [{amount, day: 0}];
-    
-    let worstDay = { day: 0, amount };
-    let bestDay = { day: 0, amount };
-
-    // Track deposit days for markers
-    const depositDays: number[] = [];
-    
-    // Calculate daily growth
-    for (let day = 1; day <= days; day++) {
-      // Add periodic deposits
-      if (frequency > 0 && day % frequency === 0) {
-        idealAmount += deposits;
-        realAmount += deposits;
-        depositDays.push(day);
-      }
-      
-      // Apply daily growth (ideal - straight line)
-      idealAmount *= (1 + dailyRate);
-      
-      // Apply daily growth with randomized volatility (realistic)
-      const dailyVolatility = (Math.random() * 2 - 1) * volatility;
-      const realDailyRate = dailyRate + dailyVolatility;
-      realAmount *= (1 + realDailyRate);
-
-      // Validate values
-      if (isNaN(idealAmount) || !isFinite(idealAmount)) idealAmount = amount;
-      if (isNaN(realAmount) || !isFinite(realAmount)) realAmount = amount;
-      
-      // Update data at intervals
-      const interval = Math.max(1, Math.floor(days / 12)); // Fewer points for clarity
-      if (day % interval === 0 || day === days) {
-        idealData.push({amount: idealAmount, day});
-        realData.push({amount: realAmount, day});
-      }
-      
-      // Track best and worst days
-      if (realAmount < worstDay.amount) {
-        worstDay = { day, amount: realAmount };
-      }
-      if (realAmount > bestDay.amount) {
-        bestDay = { day, amount: realAmount };
-      }
-    }
-
-    // Calculate total deposits
-    const totalDeposits = amount + (Math.floor(days / frequency) * deposits);
-
-    // Calculate gains
-    const idealGain = idealAmount - totalDeposits;
-    const realGain = realAmount - totalDeposits;
-
-    // Calculate returns
-    const idealReturn = idealGain / totalDeposits;
-    const realReturn = realGain / totalDeposits;
-
-    // Calculate difference
-    const difference = realAmount - idealAmount;
-    const differencePercentage = (difference / idealAmount);
-    
-    // Set results
     setResults({
       ideal: {
-        finalAmount: idealAmount,
-        totalGain: idealGain,
-        returnRate: idealReturn,
-        growthData: idealData,
+        finalAmount: simData.ideal.final,
+        growthData: simData.ideal.values.map((value, i) => ({ amount: value, day: i })),
       },
       real: {
-        finalAmount: realAmount,
-        totalGain: realGain,
-        returnRate: realReturn,
-        growthData: realData,
-        worstDay,
-        bestDay,
+        finalAmount: simData.real.final,
+        growthData: simData.real.values.map((value, i) => ({ amount: value, day: i })),
       },
       difference: {
-        amount: difference,
-        percentage: differencePercentage,
-      }
+        amount: simData.difference,
+        percentage: simData.difference / simData.ideal.final, // Local calc
+      },
     });
-  };
+    setIsLoading(false);
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+      Animated.timing(chartAnim, { toValue: 1, duration: 900, delay: 200, useNativeDriver: false }),
+    ]).start();
+  }, [simData]);
 
-  // Get chart data based on active tab
+  const step = Math.max(1, Math.floor(simData.days / 5)); // 5 points max
+
   const getChartData = () => {
     const { ideal, real } = results;
-    const idealColor = INVESTMENT_TYPES[investmentType as keyof typeof INVESTMENT_TYPES]?.color || colors.emerald.DEFAULT;
-    const realColor = '#F59E0B'; // Amber
-    
+    const investment = INVESTMENT_TYPES.find(type => type.value === simData.fund);
+    const idealColor = investment?.color || colors.emerald.DEFAULT;
+    const realColor = '#F59E0B';
+
     if (activeTab === 'ideal') {
       return {
-        labels: ideal.growthData.map(point => `${point.day}`),
-        datasets: [{
-          data: ideal.growthData.map(point => point.amount),
-          color: () => idealColor,
-          strokeWidth: 3
-        }]
+        labels: ideal.growthData.filter((_, i) => i % step === 0 || i === ideal.growthData.length - 1).map((_, i) => `${i * step}`),
+        datasets: [{ data: ideal.growthData.map(point => point.amount), color: () => idealColor, strokeWidth: 3 }],
       };
     } else if (activeTab === 'real') {
       return {
         labels: real.growthData.map(point => `${point.day}`),
-        datasets: [{
-          data: real.growthData.map(point => point.amount),
-          color: () => realColor,
-          strokeWidth: 3
-        }]
+        datasets: [{ data: real.growthData.map(point => point.amount), color: () => realColor, strokeWidth: 3 }],
       };
     } else {
-      // Comparison view (default)
       return {
-        labels: ideal.growthData.map(point => `${point.day}`),
+        labels: ideal.growthData.map((_, i) => `${i * Math.floor(simData.days / (ideal.growthData.length - 1))}`),
         datasets: [
-          {
-            data: ideal.growthData.map(point => point.amount),
-            color: () => idealColor,
-            strokeWidth: 3
-          },
-          {
-            data: real.growthData.map(point => point.amount),
-            color: () => realColor,
-            strokeWidth: 3
-          }
-        ]
+          { data: ideal.growthData.map(point => point.amount), color: () => idealColor, strokeWidth: 3 },
+          { data: real.growthData.map(point => point.amount), color: () => realColor, strokeWidth: 3 },
+        ],
       };
     }
   };
 
-  // Handle retry button
-  const handleRetry = () => {
-    navigation.goBack();
-  };
+  const handleRetry = () => navigation.goBack();
+  const handleRealInvestment = () => navigation.navigate('Home');
 
-  // Handle real investment button
-  const handleRealInvestment = () => {
-    navigation.navigate('Home');
-  };
-
-  // Get result icon based on difference
   const getResultIcon = () => {
     if (results.difference.amount > 0) {
       return <MaterialCommunityIcons name="trending-up" size={24} color={colors.emerald.DEFAULT} />;
@@ -267,132 +130,74 @@ const SimulationResultsScreen = () => {
 
   return (
     <Container>
-      <LinearGradient
-        colors={['#f0fff4', '#ffffff']}
-        style={styles.gradient}
-      >
+      <LinearGradient colors={['#f0fff4', '#ffffff']} style={styles.gradient}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <MaterialCommunityIcons name="finance" size={48} color={colors.emerald.DEFAULT} />
-            <Text style={styles.loadingText}>
-              Running simulation...
-            </Text>
+            <Text style={styles.loadingText}>Running simulation...</Text>
           </View>
         ) : (
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Header */}
-            <Animated.View
-              style={[
-                styles.header,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-              ]}
-            >
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <View style={styles.headerTop}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={handleRetry}
-                >
+                <TouchableOpacity style={styles.backButton} onPress={handleRetry}>
                   <MaterialCommunityIcons name="chevron-left" size={28} color={colors.emerald.DEFAULT} />
                 </TouchableOpacity>
                 <Text style={styles.investmentType}>
-                  {INVESTMENT_TYPES[investmentType as keyof typeof INVESTMENT_TYPES]?.label || 'Investment'} Preview
+                  {INVESTMENT_TYPES.find(type => type.value === simData.fund)?.label || 'Investment'} Preview
                 </Text>
               </View>
             </Animated.View>
 
-            {/* Results Card */}
-            <Animated.View
-              style={[
-                styles.resultsCard,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-              ]}
-            >
+            <Animated.View style={[styles.resultsCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <View style={styles.resultsSummary}>
                 <View style={styles.startedWith}>
                   <Text style={styles.startedLabel}>Started with</Text>
-                  <Text style={styles.startedValue}>{formatCurrency(amount)}</Text>
-                  {deposits > 0 && (
-                    <Text style={styles.depositsValue}>
-                      +{formatCurrency(deposits)} every {frequency} days
-                    </Text>
+                  <Text style={styles.startedValue}>{formatCurrency(simData.amount)}</Text>
+                  {simData.deposit && Number(simData.deposit) > 0 && (
+                    <Text style={styles.depositsValue}>+{formatCurrency(deposits)} {frequency}</Text>
                   )}
                 </View>
-
                 <View style={styles.resultValues}>
                   <View style={styles.resultItem}>
                     <View style={styles.valueWrapper}>
-                      <View style={[styles.colorIndicator, {backgroundColor: INVESTMENT_TYPES[investmentType as keyof typeof INVESTMENT_TYPES]?.color || colors.emerald.DEFAULT}]} />
+                      <View style={[styles.colorIndicator, { backgroundColor: INVESTMENT_TYPES.find(type => type.value === simData.fund)?.color || colors.emerald.DEFAULT }]} />
                       <Text style={styles.resultLabel}>Ideal</Text>
                     </View>
                     <Text style={styles.resultFinalAmount}>{formatCurrency(results.ideal.finalAmount)}</Text>
                   </View>
-
                   <View style={styles.resultItem}>
                     <View style={styles.valueWrapper}>
-                      <View style={[styles.colorIndicator, {backgroundColor: '#F59E0B'}]} />
+                      <View style={[styles.colorIndicator, { backgroundColor: '#F59E0B' }]} />
                       <Text style={styles.resultLabel}>Real</Text>
                     </View>
                     <Text style={styles.resultFinalAmount}>{formatCurrency(results.real.finalAmount)}</Text>
                   </View>
                 </View>
-
                 <View style={styles.diffContainer}>
                   <View style={styles.diffLeft}>
                     {getResultIcon()}
                     <Text style={styles.diffLabel}>Difference</Text>
                   </View>
-
-                  <Text style={[
-                    styles.diffValue,
-                    results.difference.amount >= 0 ? styles.positiveValue : styles.negativeValue
-                  ]}>
+                  <Text style={[styles.diffValue, results.difference.amount >= 0 ? styles.positiveValue : styles.negativeValue]}>
                     {results.difference.amount >= 0 ? '+' : ''}{formatCurrency(results.difference.amount)} ({results.difference.amount >= 0 ? '+' : ''}{formatPercentage(results.difference.percentage)})
                   </Text>
                 </View>
               </View>
             </Animated.View>
-            
-            {/* Chart Card */}
-            <Animated.View
-              style={[
-                styles.chartCard,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-              ]}
-            >
-              {/* Chart Tabs */}
+
+            <Animated.View style={[styles.chartCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <View style={styles.chartTabs}>
-                <TouchableOpacity
-                  style={[styles.tab, activeTab === 'compare' && styles.activeTab]}
-                  onPress={() => setActiveTab('compare')}
-                >
-                  <Text style={[styles.tabText, activeTab === 'compare' && styles.activeTabText]}>
-                    Compare
-                  </Text>
+                <TouchableOpacity style={[styles.tab, activeTab === 'compare' && styles.activeTab]} onPress={() => setActiveTab('compare')}>
+                  <Text style={[styles.tabText, activeTab === 'compare' && styles.activeTabText]}>Compare</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.tab, activeTab === 'ideal' && styles.activeTab]}
-                  onPress={() => setActiveTab('ideal')}
-                >
-                  <Text style={[styles.tabText, activeTab === 'ideal' && styles.activeTabText]}>
-                    Ideal
-                  </Text>
+                <TouchableOpacity style={[styles.tab, activeTab === 'ideal' && styles.activeTab]} onPress={() => setActiveTab('ideal')}>
+                  <Text style={[styles.tabText, activeTab === 'ideal' && styles.activeTabText]}>Ideal</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.tab, activeTab === 'real' && styles.activeTab]}
-                  onPress={() => setActiveTab('real')}
-                >
-                  <Text style={[styles.tabText, activeTab === 'real' && styles.activeTabText]}>
-                    Real
-                  </Text>
+                <TouchableOpacity style={[styles.tab, activeTab === 'real' && styles.activeTab]} onPress={() => setActiveTab('real')}>
+                  <Text style={[styles.tabText, activeTab === 'real' && styles.activeTabText]}>Real</Text>
                 </TouchableOpacity>
               </View>
-
-              {/* Chart */}
               <Animated.View style={{ opacity: chartAnim, marginVertical: 8 }}>
                 <LineChart
                   data={getChartData()}
@@ -410,107 +215,50 @@ const SimulationResultsScreen = () => {
                     decimalPlaces: 0,
                     color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                     labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                    propsForDots: {
-                      r: '3',
-                      strokeWidth: '1',
-                      stroke: '#ffffff',
-                    },
-                    propsForBackgroundLines: {
-                      strokeDasharray: '5, 5',
-                      stroke: '#e0e0e0',
-                    },
+                    propsForDots: { r: '3', strokeWidth: '1', stroke: '#ffffff' },
+                    propsForBackgroundLines: { strokeDasharray: '5, 5', stroke: '#e0e0e0' },
                   }}
                   bezier
                   style={styles.chart}
                 />
               </Animated.View>
-              
-              {/* Chart Legend */}
               {activeTab === 'compare' && (
                 <View style={styles.legendContainer}>
                   <View style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: INVESTMENT_TYPES[investmentType as keyof typeof INVESTMENT_TYPES]?.color || colors.emerald.DEFAULT }]} />
+                    <View style={[styles.legendDot, { backgroundColor: INVESTMENT_TYPES.find(type => type.value === simData.fund)?.color || colors.emerald.DEFAULT }]} />
                     <Text style={styles.legendText}>Ideal Growth</Text>
                   </View>
-
                   <View style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
                     <Text style={styles.legendText}>Real Growth</Text>
                   </View>
                 </View>
               )}
-
-              {/* Quick Stats */}
-              {activeTab === 'real' && (
-                <View style={styles.quickStats}>
-                  <View style={styles.statItem}>
-                    <MaterialCommunityIcons name="arrow-up-bold" size={16} color="#38A169" />
-                    <Text style={styles.statLabel}>High</Text>
-                    <Text style={styles.statValue}>{formatCurrency(results.real.bestDay.amount)}</Text>
-                  </View>
-                  
-                  <View style={styles.statSeparator} />
-
-                  <View style={styles.statItem}>
-                    <MaterialCommunityIcons name="arrow-down-bold" size={16} color="#E53E3E" />
-                    <Text style={styles.statLabel}>Low</Text>
-                    <Text style={styles.statValue}>{formatCurrency(results.real.worstDay.amount)}</Text>
-                  </View>
-                </View>
-              )}
             </Animated.View>
-            
-            {/* Learning Bite Card */}
-            <Animated.View
-              style={[
-                styles.biteCard,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-              ]}
-            >
+
+            <Animated.View style={[styles.biteCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <View style={styles.biteContent}>
                 <MaterialCommunityIcons name="lightbulb-outline" size={22} color={colors.emerald.DEFAULT} />
                 <Text style={styles.biteText}>
-                  {INVESTMENT_TYPES[investmentType as keyof typeof INVESTMENT_TYPES]?.description ||
-                  "Investing is like planting a seed that grows over time. Patience is key!"}
+                  {INVESTMENT_TYPES.find(type => type.value === simData.fund)?.description ||
+                    'Investing is like planting a seed that grows over time. Patience is key!'}
                 </Text>
               </View>
-
               {activeTab === 'real' && (
-                <Text style={styles.biteFooter}>
-                  Markets naturally go up and down. Temporary drops are normal!
-                </Text>
+                <Text style={styles.biteFooter}>Markets naturally go up and down. Temporary drops are normal!</Text>
               )}
             </Animated.View>
-            
-            {/* Action Buttons */}
-            <Animated.View
-              style={[
-                styles.buttonContainer,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-              ]}
-            >
-              <Button
-                title="Try New Values"
-                onPress={handleRetry}
-                variant="outline"
-                size="medium"
-              />
-              
-              <Button
-                title="Invest For Real"
-                onPress={handleRealInvestment}
-                variant="primary"
-                size="medium"
-              />
+
+            <Animated.View style={[styles.buttonContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+              <Button title="Try New Values" onPress={handleRetry} variant="outline" size="medium" />
+              <Button title="Invest For Real" onPress={handleRealInvestment} variant="primary" size="medium" />
             </Animated.View>
 
-          {/* Helper Text */}
-          <Text style={styles.helperText}>
-            This simulation helps build your financial confidence.
-            All investments carry risk, but knowledge reduces fear.
-          </Text>
-        </ScrollView>
-          )}
+            <Text style={styles.helperText}>
+              This simulation helps build your financial confidence. All investments carry risk, but knowledge reduces fear.
+            </Text>
+          </ScrollView>
+        )}
       </LinearGradient>
     </Container>
   );
@@ -791,3 +539,4 @@ const styles = StyleSheet.create({
 });
 
 export default SimulationResultsScreen;
+

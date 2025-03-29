@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import axios from 'axios';
 
 import Container from '../components/layout/Container';
 import colors from '../theme/color';
@@ -24,11 +25,17 @@ type RootStackParamList = {
   Home: undefined;
   SimulationInput: undefined;
   SimulationResults: {
-    amount: number;
-    investmentType: string;
-    days: number;
-    deposits: number;
-    frequency: number;
+    simData: {
+      fund: string;
+      amount: number;
+      days: number;
+      deposit: string;
+      frequency: string;
+      ideal: { values: number[]; final: number };
+      real: { values: number[]; final: number };
+      difference: number;
+      desc: string;
+    };
   };
 };
 
@@ -39,46 +46,10 @@ type SimulationInputScreenNavigationProp = NativeStackNavigationProp<
 
 const { width } = Dimensions.get('window');
 
-const INVESTMENT_TYPES: {
-  label: string;
-  value: string;
-  volatility: number;
-  dailyRate: number;
-  performance: string;
-  description: string;
-  color: string;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-}[] = [
-  { 
-    label: 'DigiSave', 
-    value: 'conservative', 
-    volatility: 0.001, 
-    dailyRate: 0.0002,
-    performance: '12%',
-    description: 'Low Risk',
-    color: '#4299E1', // Blue shade
-    icon: 'shield-check'
-  },
-  { 
-    label: 'EuroBond', 
-    value: 'balanced', 
-    volatility: 0.002, 
-    dailyRate: 0.0004,
-    performance: '17%',
-    description: 'Medium Risk',
-    color: '#38A169', // Green shade
-    icon: 'scale-balance'
-  },
-  { 
-    label: 'Global Tech', 
-    value: 'aggressive', 
-    volatility: 0.004, 
-    dailyRate: 0.0007,
-    performance: '24%',
-    description: 'High Risk',
-    color: '#D69E2E', // Gold/amber shade
-    icon: 'rocket-launch'
-  },
+const INVESTMENT_TYPES: { label: string; value: string; performance: string; description: string; color: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; dailyRate: number }[] = [
+  { label: 'DigiSave', value: 'DigiSave', performance: '12%', description: 'Low Risk', color: '#4299E1', icon: 'shield-check', dailyRate: 0.0004 },
+  { label: 'Eurobond', value: 'Eurobond', performance: '17%', description: 'Medium Risk', color: '#38A169', icon: 'scale-balance', dailyRate: 0.0006 },
+  { label: 'GlobalTech', value: 'GlobalTech', performance: '24%', description: 'High Risk', color: '#D69E2E', icon: 'rocket-launch', dailyRate: 0.0008 },
 ];
 
 const DURATIONS: { labelNumber: string; labelText: string; value: number; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
@@ -167,6 +138,10 @@ const SimulationInputScreen = () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   }, [showAdvanced]);
+
+  const [depositMode, setDepositMode] = useState('fixed'); // 'fixed' or 'range'
+  const [depositMin, setDepositMin] = useState('50'); // Default min
+  const [depositMax, setDepositMax] = useState('150'); // Default max
   
   const handleInvestmentTypeChange = (itemValue: string, index: number) => {
     setInvestmentType(itemValue);
@@ -188,41 +163,57 @@ const SimulationInputScreen = () => {
     ]).start();
   };
   
-  const handleSimulate = () => {
-    // Button press animation
-    Animated.sequence([
-      Animated.timing(buttonScaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.cubic),
-      }),
-      Animated.spring(buttonScaleAnim, {
-        toValue: 1,
-        friction: 3,
-        tension: 40,
-        useNativeDriver: true,
-      })
-    ]).start();
-    
+  const handleSimulate = async () => {
+    await new Promise<void>((resolve) => {
+      Animated.sequence([
+        Animated.timing(buttonScaleAnim, {
+          toValue: 0.95,
+          duration: 100,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic),
+        }),
+        Animated.spring(buttonScaleAnim, {
+          toValue: 1,
+          friction: 3,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start(() => resolve());
+    });
+  
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
-    // Short delay for the animation to be visible
-    setTimeout(() => {
-      navigation.navigate('SimulationResults', {
-        amount: parseFloat(initialAmount),
-        investmentType: investmentType,
-        days: duration,
-        deposits: parseFloat(depositAmount),
-        frequency: depositFrequency,
-      });
-    }, 200);
+  
+    const fund = INVESTMENT_TYPES.find(t => t.value === investmentType)?.value || INVESTMENT_TYPES[0].value;
+    const freqOption = FREQUENCIES.find(f => f.value === depositFrequency) || FREQUENCIES[0];
+    const params = {
+      amount: parseFloat(initialAmount),
+      days: duration,
+      deposit: depositMode === 'fixed' ? parseFloat(depositAmount) : 0,
+      deposit_min: depositMode === 'range' ? parseFloat(depositMin) : 0,
+      deposit_max: depositMode === 'range' ? parseFloat(depositMax) : 0,
+      freq: freqOption.label.toLowerCase(),
+    };
+  
+    try {
+      const res = await axios.get(`http://localhost:8000/simulations/sims/${fund}`, { params });
+      navigation.navigate('SimulationResults', { simData: res.data });
+    } catch (error) {
+      console.error('Simulation failed:', error);
+    }
   };
 
   const isValidInput = () => {
     const amount = parseFloat(initialAmount);
-    const deposits = parseFloat(depositAmount);
-    return amount > 0 && (!showAdvanced || deposits >= 0);
+    if (amount <= 0) return false;
+    if (!showAdvanced) return true;
+    if (depositMode === 'fixed') {
+      const deposits = parseFloat(depositAmount);
+      return deposits >= 0;
+    } else {
+      const min = parseFloat(depositMin);
+      const max = parseFloat(depositMax);
+      return min >= 0 && max >= 0 && min <= max;
+    }
   };
   
   // Calculate a simple estimated return for the preview
@@ -243,11 +234,11 @@ const SimulationInputScreen = () => {
   });
 
   // Format the preview estimated amount
-  const formattedEstimate = new Intl.NumberFormat('en-GH', {
-    style: 'currency',
-    currency: 'GHS',
-    maximumFractionDigits: 0,
-  }).format(estimatedReturn);
+  // const formattedEstimate = new Intl.NumberFormat('en-GH', {
+  //   style: 'currency',
+  //   currency: 'GHS',
+  //   maximumFractionDigits: 0,
+  // }).format(estimatedReturn);
 
   return (
     <Container>
@@ -453,72 +444,124 @@ const SimulationInputScreen = () => {
               }]}
             >
 
-              <Animated.View
-                style={{
-                  backgroundColor: 'rgba(237, 242, 247, 0.5)',
-                  borderRadius: 12,
-                  padding: 15,
-                  marginBottom: 10
-                }}
-              >
-                <Text style={styles.cardTitle}>Continuous Investment</Text>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Top up amount</Text>
-                  <View style={[
-                    styles.inputWrapper,
-                    inputFocus === 'deposit' && styles.inputWrapperFocused
-                  ]}>
-                    <View style={styles.currencyContainer}>
-                      <Text style={styles.currencySymbol}>GHS</Text>
-                    </View>
-                    <TextInput
-                      style={styles.textInput}
-                      keyboardType="numeric"
-                      value={depositAmount}
-                      onChangeText={setDepositAmount}
-                      placeholder="e.g., 100"
-                      onFocus={() => setInputFocus('deposit')}
-                      onBlur={() => setInputFocus('')}
-                    />
-                  </View>
-                </View>
-                
-                <View style={[styles.inputGroup, {marginBottom: 0}]}>
-                  <Text style={styles.inputLabel}>Top up frequency</Text>
-                  <View style={styles.frequencyButtons}>
-                    {FREQUENCIES.map((freq) => {
-                      const isActive = depositFrequency === freq.value;
-                      
-                      return (
-                        <TouchableOpacity
-                          key={freq.value}
-                          style={[
-                            styles.frequencyButton,
-                            isActive && styles.frequencyButtonActive
-                          ]}
-                          onPress={() => {
-                            setDepositFrequency(freq.value);
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          }}
-                        >
-                          <MaterialCommunityIcons 
-                            name={freq.icon} 
-                            size={15} 
-                            color={isActive ? colors.emerald.DEFAULT : colors.gray.DEFAULT} 
-                            style={styles.frequencyIcon}
-                          />
-                          <Text style={[
-                            styles.frequencyButtonText,
-                            isActive && styles.frequencyButtonTextActive
-                          ]}>
-                            {freq.label}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              </Animated.View>
+<Animated.View
+  style={{
+    backgroundColor: 'rgba(237, 242, 247, 0.5)',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10
+  }}
+>
+  <Text style={styles.cardTitle}>Continuous Investment</Text>
+  <View style={styles.inputGroup}>
+    <Text style={styles.inputLabel}>Top up amount</Text>
+    {/* Toggle Button */}
+    <TouchableOpacity
+      style={styles.toggleButton}
+      onPress={() => {
+        setDepositMode(depositMode === 'fixed' ? 'range' : 'fixed');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // Optional: Keep your haptic flair
+      }}
+    >
+      <Text style={styles.toggleText}>
+        {depositMode === 'fixed' ? 'Switch to Range' : 'Switch to Fixed'}
+      </Text>
+    </TouchableOpacity>
+
+    {/* Conditional Inputs */}
+    {depositMode === 'fixed' ? (
+      <View style={[
+        styles.inputWrapper,
+        inputFocus === 'deposit' && styles.inputWrapperFocused
+      ]}>
+        <View style={styles.currencyContainer}>
+          <Text style={styles.currencySymbol}>GHS</Text>
+        </View>
+        <TextInput
+          style={styles.textInput}
+          keyboardType="numeric"
+          value={depositAmount}
+          onChangeText={setDepositAmount}
+          placeholder="e.g., 100"
+          onFocus={() => setInputFocus('deposit')}
+          onBlur={() => setInputFocus('')}
+        />
+      </View>
+    ) : (
+      <View style={styles.rangeInputContainer}>
+        <View style={[
+          styles.inputWrapper,
+          inputFocus === 'depositMin' && styles.inputWrapperFocused,
+          { width: '48%' }
+        ]}>
+          <View style={styles.currencyContainer}>
+            <Text style={styles.currencySymbol}>GHS</Text>
+          </View>
+          <TextInput
+            style={styles.textInput}
+            keyboardType="numeric"
+            value={depositMin}
+            onChangeText={setDepositMin}
+            placeholder="Min (e.g., 50)"
+            onFocus={() => setInputFocus('depositMin')}
+            onBlur={() => setInputFocus('')}
+          />
+        </View>
+        <View style={[
+          styles.inputWrapper,
+          inputFocus === 'depositMax' && styles.inputWrapperFocused,
+          { width: '48%' }
+        ]}>
+          <View style={styles.currencyContainer}>
+            <Text style={styles.currencySymbol}>GHS</Text>
+          </View>
+          <TextInput
+            style={styles.textInput}
+            keyboardType="numeric"
+            value={depositMax}
+            onChangeText={setDepositMax}
+            placeholder="Max (e.g., 150)"
+            onFocus={() => setInputFocus('depositMax')}
+            onBlur={() => setInputFocus('')}
+          />
+        </View>
+      </View>
+    )}
+  </View>
+
+  {/* Frequency Buttons (unchanged) */}
+  <View style={[styles.inputGroup, { marginBottom: 0 }]}>
+    <Text style={styles.inputLabel}>Top up frequency</Text>
+    <View style={styles.frequencyButtons}>
+      {FREQUENCIES.map((freq) => (
+        <TouchableOpacity
+          key={freq.value}
+          style={[
+            styles.frequencyButton,
+            depositFrequency === freq.value && styles.frequencyButtonActive
+          ]}
+          onPress={() => {
+            setDepositFrequency(freq.value);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }}
+        >
+          <MaterialCommunityIcons 
+            name={freq.icon} 
+            size={15} 
+            color={depositFrequency === freq.value ? colors.emerald.DEFAULT : colors.gray.DEFAULT} 
+            style={styles.frequencyIcon}
+          />
+          <Text style={[
+            styles.frequencyButtonText,
+            depositFrequency === freq.value && styles.frequencyButtonTextActive
+          ]}>
+            {freq.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  </View>
+</Animated.View>
 
             </Animated.View>
             
@@ -873,7 +916,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 8,
     fontStyle: 'italic',
-  }
+  },
+  toggleButton: {
+    padding: 8,
+    marginBottom: 10,
+    backgroundColor: 'rgba(56, 178, 172, 0.1)',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  toggleText: {
+    color: colors.emerald.DEFAULT,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  rangeInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
 });
 
 export default SimulationInputScreen;

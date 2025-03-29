@@ -18,6 +18,7 @@ interface FormDropdownProps {
   options: string[];
   value: string;
   onSelect: (value: string) => void;
+  error?: boolean;
 }
 
 const FormDropdown = ({ 
