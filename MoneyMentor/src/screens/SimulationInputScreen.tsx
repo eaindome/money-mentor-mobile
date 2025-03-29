@@ -81,11 +81,11 @@ const INVESTMENT_TYPES: {
   },
 ];
 
-const DURATIONS: { label: string; value: number; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
-  { label: '1 month', value: 30, icon: 'calendar-month' },
-  { label: '3 months', value: 90, icon: 'calendar-month' },
-  { label: '6 months', value: 180, icon: 'calendar-month' },
-  { label: '1 year', value: 365, icon: 'calendar-check' },
+const DURATIONS: { labelNumber: string; labelText: string; value: number; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
+  { labelNumber: '1', labelText: "month", value: 30, icon: 'calendar-month' },
+  { labelNumber: '3', labelText: "months", value: 90, icon: 'calendar-month' },
+  { labelNumber: '6', labelText: "months", value: 180, icon: 'calendar-month' },
+  { labelNumber: '12', labelText: "months", value: 365, icon: 'calendar-check' },
 ];
 
 const FREQUENCIES: { label: string; value: number; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
@@ -239,7 +239,7 @@ const SimulationInputScreen = () => {
   // Height interpolation for smooth advanced section animation
   const heightInterpolation = advancedHeightAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 180],
+    outputRange: [0, 260],
   });
 
   // Format the preview estimated amount
@@ -286,6 +286,7 @@ const SimulationInputScreen = () => {
           >
             {/* Amount Input */}
             <View style={styles.inputGroup}>
+              <Text style={styles.cardTitle}>One-Time Investment</Text>
               <Text style={styles.inputLabel}>How much do you want to invest?</Text>
               <View style={[
                 styles.inputWrapper,
@@ -328,7 +329,6 @@ const SimulationInputScreen = () => {
                           styles.fundOption,
                           isSelected && { 
                             borderColor: type.color,
-                            backgroundColor: `${type.color}10`
                           }
                         ]}
                         onPress={() => handleInvestmentTypeChange(type.value, index)}
@@ -358,7 +358,7 @@ const SimulationInputScreen = () => {
                         
                         <View style={[
                           styles.fundPerformance,
-                          { backgroundColor: `${type.color}30` }
+                          { backgroundColor: `${type.color}50` }
                         ]}>
                           <Text style={[
                             styles.fundPerformanceText,
@@ -376,7 +376,7 @@ const SimulationInputScreen = () => {
             
             {/* Duration Selection - Enhanced buttons */}
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>How long?</Text>
+              <Text style={styles.inputLabel}>Duration</Text>
               <View style={styles.durationButtons}>
                 {DURATIONS.map((durationOption) => {
                   const isActive = duration === durationOption.value;
@@ -404,7 +404,13 @@ const SimulationInputScreen = () => {
                           styles.durationButtonText,
                           isActive && styles.durationButtonTextActive
                         ]}>
-                          {durationOption.label}
+                          {durationOption.labelNumber}
+                        </Text>
+                        <Text style={[
+                          styles.durationButtonText,
+                          isActive && styles.durationButtonTextActive
+                        ]}>
+                          {durationOption.labelText}
                         </Text>
                       </View>
                     </TouchableOpacity>
@@ -426,7 +432,7 @@ const SimulationInputScreen = () => {
                 style={styles.advancedToggleGradient}
               >
                 <Text style={styles.advancedToggleText}>
-                  {showAdvanced ? 'Hide advanced options' : 'Add recurring deposits'}
+                  {showAdvanced ? 'Hide advanced options' : 'Show advanced options'}
                 </Text>
                 <Animated.View style={{ transform: [{ rotate: rotateInterpolation }] }}>
                   <MaterialCommunityIcons 
@@ -443,21 +449,21 @@ const SimulationInputScreen = () => {
               style={[{ 
                 height: heightInterpolation,
                 opacity: advancedHeightAnim,
-                overflow: 'hidden',
                 marginTop: 5
               }]}
             >
+
               <Animated.View
                 style={{
-                  transform: [{ translateY: advancedSlideAnim }],
                   backgroundColor: 'rgba(237, 242, 247, 0.5)',
                   borderRadius: 12,
                   padding: 15,
                   marginBottom: 10
                 }}
               >
+                <Text style={styles.cardTitle}>Continuous Investment</Text>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>How much to add regularly?</Text>
+                  <Text style={styles.inputLabel}>Top up amount</Text>
                   <View style={[
                     styles.inputWrapper,
                     inputFocus === 'deposit' && styles.inputWrapperFocused
@@ -478,7 +484,7 @@ const SimulationInputScreen = () => {
                 </View>
                 
                 <View style={[styles.inputGroup, {marginBottom: 0}]}>
-                  <Text style={styles.inputLabel}>How often?</Text>
+                  <Text style={styles.inputLabel}>Top up frequency</Text>
                   <View style={styles.frequencyButtons}>
                     {FREQUENCIES.map((freq) => {
                       const isActive = depositFrequency === freq.value;
@@ -513,6 +519,7 @@ const SimulationInputScreen = () => {
                   </View>
                 </View>
               </Animated.View>
+
             </Animated.View>
             
             {/* Simulate Button - Enhanced styling */}
@@ -602,6 +609,13 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     textAlign: 'center',
   },
+  cardTitle: {
+    fontSize: 16,
+    color: "#000",
+    opacity: 0.8,
+    textAlign: 'center',
+    fontWeight: '700',
+  },
   card: {
     backgroundColor: colors.white,
     borderRadius: 24,
@@ -622,7 +636,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 12,
     color: colors.gray.dark,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   inputWrapper: {
     position: 'relative',
@@ -689,16 +703,14 @@ const styles = StyleSheet.create({
   fundOption: {
     borderWidth: 1.5,
     borderColor: colors.gray.light,
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 10,
+    paddingHorizontal: 1,
     backgroundColor: '#FAFAFA',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 3,
     elevation: 1,
     height: 145,
     justifyContent: 'space-between',
+    paddingVertical:5
   },
   fundIconContainer: {
     width: 40,
@@ -722,11 +734,15 @@ const styles = StyleSheet.create({
     color: colors.gray.DEFAULT,
     textAlign: 'center',
     marginBottom: 8,
+    width: 'auto',
   },
   fundPerformance: {
     borderRadius: 10,
     padding: 6,
     alignItems: 'center',
+    width: 86,
+    marginLeft: -3,
+    marginTop: 14
   },
   fundPerformanceText: {
     fontSize: 12,
@@ -741,7 +757,7 @@ const styles = StyleSheet.create({
     padding: 8,
     marginHorizontal: 4,
     backgroundColor: '#f3f4f6',
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: '#f3f4f6',
@@ -752,21 +768,19 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   durationContent: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
   },
   durationIcon: {
-    marginRight: 5,
   },
   durationButtonActive: {
-    backgroundColor: 'rgba(104, 211, 145, 0.15)',
     borderColor: colors.emerald.DEFAULT,
   },
   durationButtonText: {
     fontWeight: '600',
     color: colors.gray.DEFAULT,
-    fontSize: 13,
+    fontSize: 12,
   },
   durationButtonTextActive: {
     color: colors.emerald.DEFAULT,
