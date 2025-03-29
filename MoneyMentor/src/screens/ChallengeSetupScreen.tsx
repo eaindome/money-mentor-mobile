@@ -256,11 +256,7 @@ const ChallengeSetupScreen = () => {
     switch(currentStep) {
       case 0: // Hero Profile
         return (
-          <Animated.View 
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }}
+          <Animated.View
           >
             <QuestCard title="Build Your Hero Profile" icon="account-outline">
               <Text style={styles.stepDescription}>
@@ -274,13 +270,11 @@ const ChallengeSetupScreen = () => {
                 value={formData.employmentType}
                 onSelect={(value) => updateFormData('employmentType', value)}
               />
-              
               {formData.employmentType && (
                 <Tip
                   text={`Your ${formData.employmentType.toLowerCase()} status helps us match challenges to your income pattern.`}
                 />
               )}
-              
               <FormDropdown
                 label="How would you describe your spending?"
                 placeholder="Select spending behavior"
@@ -319,11 +313,7 @@ const ChallengeSetupScreen = () => {
         
       case 1: // Your Quest
         return (
-          <Animated.View 
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }}
+          <Animated.View
           >
             <QuestCard title="Choose Your Quest" icon="map-marker-path">
               <Text style={styles.stepDescription}>
@@ -380,11 +370,7 @@ const ChallengeSetupScreen = () => {
         
       case 2: // Power Level
         return (
-          <Animated.View 
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }}
+          <Animated.View
           >
             <QuestCard title="Set Your Power Level" icon="lightning-bolt">
               <Text style={styles.stepDescription}>
@@ -449,11 +435,7 @@ const ChallengeSetupScreen = () => {
         
       case 3: // Summary
         return (
-          <Animated.View 
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }}
+          <Animated.View
           >
             <QuestCard title="Your Challenge Awaits" icon="flag-checkered">
               <Text style={styles.stepDescription}>
