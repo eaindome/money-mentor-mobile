@@ -106,14 +106,14 @@ const HomeScreen = () => {
           </View>
 
           {/* Call to Action */}
-          <View style={styles.ctaContainer}>
+          {/* <View style={styles.ctaContainer}>
             <PulsingButton 
               title="Start Your Journey" 
               onPress={handleGetStarted} 
               size="large"
               className="w-64"
             />
-          </View>
+          </View> */}
         </View>
       </LinearGradient>
     </Container>
