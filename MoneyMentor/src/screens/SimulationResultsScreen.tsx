@@ -53,7 +53,7 @@ const SimulationResultsScreen = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const chartAnim = useRef(new Animated.Value(0)).current;
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('compare'); // 'compare', 'ideal', or 'real'
   
@@ -85,7 +85,7 @@ const SimulationResultsScreen = () => {
     setTimeout(() => {
       calculateResults();
       setIsLoading(false);
-      
+
       // Start animations
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -121,7 +121,7 @@ const SimulationResultsScreen = () => {
     
     let worstDay = { day: 0, amount };
     let bestDay = { day: 0, amount };
-    
+
     // Track deposit days for markers
     const depositDays: number[] = [];
     
@@ -161,18 +161,18 @@ const SimulationResultsScreen = () => {
         bestDay = { day, amount: realAmount };
       }
     }
-    
+
     // Calculate total deposits
     const totalDeposits = amount + (Math.floor(days / frequency) * deposits);
-    
+
     // Calculate gains
     const idealGain = idealAmount - totalDeposits;
     const realGain = realAmount - totalDeposits;
-    
+
     // Calculate returns
     const idealReturn = idealGain / totalDeposits;
     const realReturn = realGain / totalDeposits;
-    
+
     // Calculate difference
     const difference = realAmount - idealAmount;
     const differencePercentage = (difference / idealAmount);
@@ -248,7 +248,7 @@ const SimulationResultsScreen = () => {
   const handleRetry = () => {
     navigation.goBack();
   };
-  
+
   // Handle real investment button
   const handleRealInvestment = () => {
     navigation.navigate('Home');
@@ -259,7 +259,7 @@ const SimulationResultsScreen = () => {
     if (results.difference.amount > 0) {
       return <MaterialCommunityIcons name="trending-up" size={24} color={colors.emerald.DEFAULT} />;
     } else if (results.difference.amount < 0) {
-      return <MaterialCommunityIcons name="trending-down" size={24} color="#E53E3E" />; 
+      return <MaterialCommunityIcons name="trending-down" size={24} color="#E53E3E" />;
     } else {
       return <MaterialCommunityIcons name="minus" size={24} color={colors.gray.DEFAULT} />;
     }
@@ -279,20 +279,20 @@ const SimulationResultsScreen = () => {
             </Text>
           </View>
         ) : (
-          <ScrollView 
+          <ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
             {/* Header */}
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.header, 
+                styles.header,
                 { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
               ]}
             >
               <View style={styles.headerTop}>
-                <TouchableOpacity 
-                  style={styles.backButton} 
+                <TouchableOpacity
+                  style={styles.backButton}
                   onPress={handleRetry}
                 >
                   <MaterialCommunityIcons name="chevron-left" size={28} color={colors.emerald.DEFAULT} />
@@ -302,11 +302,11 @@ const SimulationResultsScreen = () => {
                 </Text>
               </View>
             </Animated.View>
-            
+
             {/* Results Card */}
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.resultsCard, 
+                styles.resultsCard,
                 { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
               ]}
             >
@@ -320,7 +320,7 @@ const SimulationResultsScreen = () => {
                     </Text>
                   )}
                 </View>
-                
+
                 <View style={styles.resultValues}>
                   <View style={styles.resultItem}>
                     <View style={styles.valueWrapper}>
@@ -329,7 +329,7 @@ const SimulationResultsScreen = () => {
                     </View>
                     <Text style={styles.resultFinalAmount}>{formatCurrency(results.ideal.finalAmount)}</Text>
                   </View>
-                  
+
                   <View style={styles.resultItem}>
                     <View style={styles.valueWrapper}>
                       <View style={[styles.colorIndicator, {backgroundColor: '#F59E0B'}]} />
@@ -338,13 +338,13 @@ const SimulationResultsScreen = () => {
                     <Text style={styles.resultFinalAmount}>{formatCurrency(results.real.finalAmount)}</Text>
                   </View>
                 </View>
-                
+
                 <View style={styles.diffContainer}>
                   <View style={styles.diffLeft}>
                     {getResultIcon()}
                     <Text style={styles.diffLabel}>Difference</Text>
                   </View>
-                  
+
                   <Text style={[
                     styles.diffValue,
                     results.difference.amount >= 0 ? styles.positiveValue : styles.negativeValue
@@ -356,15 +356,15 @@ const SimulationResultsScreen = () => {
             </Animated.View>
             
             {/* Chart Card */}
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.chartCard, 
+                styles.chartCard,
                 { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
               ]}
             >
               {/* Chart Tabs */}
               <View style={styles.chartTabs}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.tab, activeTab === 'compare' && styles.activeTab]}
                   onPress={() => setActiveTab('compare')}
                 >
@@ -372,8 +372,8 @@ const SimulationResultsScreen = () => {
                     Compare
                   </Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={[styles.tab, activeTab === 'ideal' && styles.activeTab]}
                   onPress={() => setActiveTab('ideal')}
                 >
@@ -381,8 +381,8 @@ const SimulationResultsScreen = () => {
                     Ideal
                   </Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={[styles.tab, activeTab === 'real' && styles.activeTab]}
                   onPress={() => setActiveTab('real')}
                 >
@@ -391,7 +391,7 @@ const SimulationResultsScreen = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              
+
               {/* Chart */}
               <Animated.View style={{ opacity: chartAnim, marginVertical: 8 }}>
                 <LineChart
@@ -432,14 +432,14 @@ const SimulationResultsScreen = () => {
                     <View style={[styles.legendDot, { backgroundColor: INVESTMENT_TYPES[investmentType as keyof typeof INVESTMENT_TYPES]?.color || colors.emerald.DEFAULT }]} />
                     <Text style={styles.legendText}>Ideal Growth</Text>
                   </View>
-                  
+
                   <View style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
                     <Text style={styles.legendText}>Real Growth</Text>
                   </View>
                 </View>
               )}
-              
+
               {/* Quick Stats */}
               {activeTab === 'real' && (
                 <View style={styles.quickStats}>
@@ -450,7 +450,7 @@ const SimulationResultsScreen = () => {
                   </View>
                   
                   <View style={styles.statSeparator} />
-                  
+
                   <View style={styles.statItem}>
                     <MaterialCommunityIcons name="arrow-down-bold" size={16} color="#E53E3E" />
                     <Text style={styles.statLabel}>Low</Text>
@@ -461,20 +461,20 @@ const SimulationResultsScreen = () => {
             </Animated.View>
             
             {/* Learning Bite Card */}
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.biteCard, 
+                styles.biteCard,
                 { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
               ]}
             >
               <View style={styles.biteContent}>
                 <MaterialCommunityIcons name="lightbulb-outline" size={22} color={colors.emerald.DEFAULT} />
                 <Text style={styles.biteText}>
-                  {INVESTMENT_TYPES[investmentType as keyof typeof INVESTMENT_TYPES]?.description || 
+                  {INVESTMENT_TYPES[investmentType as keyof typeof INVESTMENT_TYPES]?.description ||
                   "Investing is like planting a seed that grows over time. Patience is key!"}
                 </Text>
               </View>
-              
+
               {activeTab === 'real' && (
                 <Text style={styles.biteFooter}>
                   Markets naturally go up and down. Temporary drops are normal!
@@ -483,28 +483,34 @@ const SimulationResultsScreen = () => {
             </Animated.View>
             
             {/* Action Buttons */}
-            <Animated.View 
+            <Animated.View
               style={[
-                styles.buttonContainer, 
+                styles.buttonContainer,
                 { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
               ]}
             >
               <Button
-                title="Try New Values" 
+                title="Try New Values"
                 onPress={handleRetry}
-                variant="secondary"
+                variant="outline"
                 size="medium"
               />
               
               <Button
-                title="Invest For Real" 
+                title="Invest For Real"
                 onPress={handleRealInvestment}
                 variant="primary"
                 size="medium"
               />
             </Animated.View>
-          </ScrollView>
-        )}
+
+          {/* Helper Text */}
+          <Text style={styles.helperText}>
+            This simulation helps build your financial confidence.
+            All investments carry risk, but knowledge reduces fear.
+          </Text>
+        </ScrollView>
+          )}
       </LinearGradient>
     </Container>
   );
@@ -544,9 +550,14 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.emerald.DEFAULT,
-    marginLeft: 4,
+    marginBottom: 8,
   },
-  resultsCard: {
+  subtitle: {
+    fontSize: 16,
+    color: colors.gray.DEFAULT,
+    textAlign: 'center',
+  },
+  card: {
     backgroundColor: colors.white,
     borderRadius: 20,
     padding: 16,
@@ -556,9 +567,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  resultsSummary: {
-    padding: 4,
   },
   startedWith: {
     alignItems: 'center',
@@ -586,6 +594,20 @@ const styles = StyleSheet.create({
   },
   resultItem: {
     alignItems: 'center',
+  },
+  resultsCard: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  resultsSummary: {
+    padding: 4,
   },
   valueWrapper: {
     flexDirection: 'row',
@@ -754,8 +776,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   buttonContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
+    marginTop: 20,
+    gap: 7
+  },
+  helperText: {
+    textAlign: 'center',
+    color: colors.gray.DEFAULT,
+    fontSize: 14,
+    marginTop: 5,
     marginBottom: 20,
   },
 });
