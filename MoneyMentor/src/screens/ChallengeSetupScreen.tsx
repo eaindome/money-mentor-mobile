@@ -99,24 +99,17 @@ const ChallengeSetupScreen = () => {
     
     // Step 1 progress (4 fields)
     const step0Fields = ['employmentType', 'spendingBehavior', 'debtSituation', 'investmentPreference'];
-    const step0Complete = step0Fields.filter(field => !!formData[field as keyof ChallengeFormData]).length;
-    newProgress[0] = step0Complete / step0Fields.length;
+    newProgress[0] = step0Fields.filter(field => !!formData[field as keyof ChallengeFormData]).length / step0Fields.length;
     
     // Step 2 progress (3 fields)
     const step1Fields = ['financialGoal', 'challengeType', 'challengeDuration'];
-    const step1Complete = step1Fields.filter(field => !!formData[field as keyof ChallengeFormData]).length;
-    newProgress[1] = step1Complete / step1Fields.length;
+    newProgress[1] = step1Fields.filter(field => !!formData[field as keyof ChallengeFormData]).length / step1Fields.length;
     
-    // Step 3 progress (3 fields)
-    const step2Fields = ['savingsRate', 'commitmentLevel', 'financialFear'];
-    // savingsRate and commitmentLevel already have default values, so only check financialFear
-    const step2Complete = 2 + (formData.financialFear ? 1 : 0);
-    newProgress[2] = step2Complete / 3;
+    // Step 3 progress (3 fields - 2 sliders already have values)
+    newProgress[2] = formData.financialFear ? 1 : 0.66;
     
-    // Step 4 progress is based on overall completion
-    const totalFieldsComplete = step0Complete + step1Complete + step2Complete;
-    const totalFields = step0Fields.length + step1Fields.length + 3; // 3 fields in step 3
-    newProgress[3] = totalFieldsComplete / totalFields;
+    // Step 4 is calculated differently - it's summary
+    newProgress[3] = (newProgress[0] + newProgress[1] + newProgress[2]) / 3;
     
     setStepProgress(newProgress);
   }, [formData]);
@@ -548,7 +541,9 @@ const ChallengeSetupScreen = () => {
         colors={['#f0fff4', '#ffffff']}
         style={styles.gradient}
       >
-        <View style={styles.scrollContent}
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
           {/* Header */}
           <View style={styles.header}>
@@ -604,7 +599,7 @@ const ChallengeSetupScreen = () => {
               </Animated.View>
             )}
           </View>
-        </View>
+        </ScrollView>
       </LinearGradient>
     </Container>
   );
@@ -615,9 +610,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    flex: 1,
+    flexGrow: 1,
     padding: 20,
-    justifyContent: 'space-between',
   },
   header: {
     flexDirection: 'row',
