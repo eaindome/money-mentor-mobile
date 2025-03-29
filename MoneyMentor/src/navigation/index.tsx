@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/HomeScreens';
 import SimulationInputScreen from '../screens/SimulationInputScreen';
 import SimulationResultsScreen from '../screens/SimulationResultsScreen';
+import ChallengeSetupScreen from '../screens/ChallengeSetupScreen';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -16,6 +17,7 @@ export type RootStackParamList = {
     deposits: number;
     frequency: number
   }
+  ChallengeSetup: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -32,7 +34,7 @@ const RootNavigator = () => {
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="SimulationInput" component={SimulationInputScreen} />
       <Stack.Screen name="SimulationResults" component={SimulationResultsScreen} />
-      {/* <Stack.Screen name="Quiz" component={QuizScreen} /> */}
+      <Stack.Screen name="ChallengeSetup" component={ChallengeSetupScreen} />
     </Stack.Navigator>
   );
 };

@@ -13,6 +13,7 @@ interface ButtonProps {
   disabled?: boolean;
   pulsing?: boolean;
   className?: string;
+  rightIcon?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
