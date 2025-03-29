@@ -17,6 +17,7 @@ type RootStackParamList = {
     deposits: number;
     frequency: number;
   };
+  ChallengeSetup: undefined;
 };
 
 type FeatureCardNavigationProp = NativeStackNavigationProp<RootStackParamList>;

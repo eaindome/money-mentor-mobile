@@ -23,6 +23,7 @@ type RootStackParamList = {
     deposits: number;
     frequency: number;
   };
+  ChallengeSetup: undefined;
 };
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -94,7 +95,7 @@ const HomeScreen = () => {
               title="Micro-Challenges"
               description="Build confidence with bite-sized financial wins"
               delay={200}
-              screenToNavigate="Quiz"
+              screenToNavigate="ChallengeSetup"
             />
             <FeatureCard
               icon="chart-line"
@@ -104,16 +105,6 @@ const HomeScreen = () => {
               screenToNavigate="SimulationInput"
             />
           </View>
-
-          {/* Call to Action */}
-          {/* <View style={styles.ctaContainer}>
-            <PulsingButton 
-              title="Start Your Journey" 
-              onPress={handleGetStarted} 
-              size="large"
-              className="w-64"
-            />
-          </View> */}
         </View>
       </LinearGradient>
     </Container>
