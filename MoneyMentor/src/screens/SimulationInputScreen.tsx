@@ -740,9 +740,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 6,
     alignItems: 'center',
-    width: 86,
-    marginLeft: -3,
-    marginTop: 14
   },
   fundPerformanceText: {
     fontSize: 12,
