@@ -91,28 +91,12 @@ const ChallengeSetupScreen = () => {
   });
 
   // Progress tracking
-  const [stepProgress, setStepProgress] = useState([0, 0, 0, 0]);
+  const progress = (currentStep + 1) / 4; // 0 -> 0.25, 1 -> 0.5, 2 -> 0.75, 3 -> 1.0
   
   useEffect(() => {
-    // Calculate progress for each step
-    const newProgress = [...stepProgress];
-    
-    // Step 1 progress (4 fields)
-    const step0Fields = ['employmentType', 'spendingBehavior', 'debtSituation', 'investmentPreference'];
-    newProgress[0] = step0Fields.filter(field => !!formData[field as keyof ChallengeFormData]).length / step0Fields.length;
-    
-    // Step 2 progress (3 fields)
-    const step1Fields = ['financialGoal', 'challengeType', 'challengeDuration'];
-    newProgress[1] = step1Fields.filter(field => !!formData[field as keyof ChallengeFormData]).length / step1Fields.length;
-    
-    // Step 3 progress (3 fields - 2 sliders already have values)
-    newProgress[2] = formData.financialFear ? 1 : 0.66;
-    
-    // Step 4 is calculated differently - it's summary
-    newProgress[3] = (newProgress[0] + newProgress[1] + newProgress[2]) / 3;
-    
-    setStepProgress(newProgress);
-  }, [formData]);
+    console.log('Current Step:', currentStep);
+    console.log('Progress:', (progress * 100).toFixed(0) + '%');
+  }, [currentStep]);
 
   // Animations for step transitions
   const transitionToNextStep = () => {
@@ -542,7 +526,7 @@ const ChallengeSetupScreen = () => {
               <MaterialCommunityIcons name="chevron-left" size={28} color={colors.emerald.DEFAULT} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Hero's Journey</Text>
-            <ProgressBadge progress={currentStep === 3 ? stepProgress[3] : stepProgress[currentStep]} />
+            <ProgressBadge progress={progress} />
           </View>
           
           {/* Step Title */}
