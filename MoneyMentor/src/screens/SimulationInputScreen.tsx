@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
     elevation: 1,
     height: 145,
     justifyContent: 'space-between',
-    paddingVertical:5
+    paddingTop:5
   },
   fundIconContainer: {
     width: 40,

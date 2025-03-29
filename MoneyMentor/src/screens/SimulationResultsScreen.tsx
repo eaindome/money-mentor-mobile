@@ -425,7 +425,7 @@ const SimulationResultsScreen = () => {
               <Button
                 title="Try Different Values" 
                 onPress={handleRetry}
-                variant="secondary"
+                variant="outline"
                 size="medium"
               />
               
@@ -440,7 +440,7 @@ const SimulationResultsScreen = () => {
           
           {/* Helper Text */}
           <Text style={styles.helperText}>
-            This simulation helps build your financial confidence.
+            *This simulation helps build your financial confidence.
             All investments carry risk, but knowledge reduces fear.
           </Text>
         </ScrollView>
@@ -631,9 +631,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   buttonContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     justifyContent: 'space-between',
     marginTop: 20,
+    gap: 7
   },
   helperText: {
     textAlign: 'center',

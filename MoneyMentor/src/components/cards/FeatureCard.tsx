@@ -29,10 +29,10 @@ interface FeatureCardProps {
   screenToNavigate?: keyof RootStackParamList;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ 
-  icon, 
-  title, 
-  description, 
+const FeatureCard: React.FC<FeatureCardProps> = ({
+  icon,
+  title,
+  description,
   delay = 0,
   screenToNavigate
 }) => {
@@ -73,10 +73,10 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
 
   return (
     <TouchableOpacity
-      activeOpacity={screenToNavigate ? 0.7 : 1}
+      activeOpacity={ 1}
       onPress={screenToNavigate ? handlePress : undefined}
     >
-      <Animated.View 
+      <Animated.View
         style={[
           styles.card,
           { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
@@ -90,10 +90,10 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
           <Text style={styles.description}>{description}</Text>
         </View>
         {screenToNavigate && (
-          <MaterialCommunityIcons 
-            name="chevron-right" 
-            size={24} 
-            color={colors.emerald.light} 
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={24}
+            color={colors.emerald.light}
             style={styles.chevron}
           />
         )}
