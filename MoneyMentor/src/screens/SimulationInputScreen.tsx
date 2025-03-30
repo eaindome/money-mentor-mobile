@@ -90,6 +90,29 @@ const SimulationInputScreen = () => {
   // Derived values for projections
   const selectedFund = INVESTMENT_TYPES.find(type => type.value === investmentType) || INVESTMENT_TYPES[1];
   const estimatedReturn = calculateEstimatedReturn(parseFloat(initialAmount), selectedFund.dailyRate, duration);
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) {
+      Animated.loop(
+        Animated.timing(spinAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+    } else {
+      spinAnim.setValue(0);
+    }
+  }, [isLoading]);
+  
+  // Create the spin interpolation
+  const spin = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   // Initial entrance animations
   useEffect(() => {
@@ -182,6 +205,7 @@ const SimulationInputScreen = () => {
     });
   
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setIsLoading(true);
   
     const fund = INVESTMENT_TYPES.find(t => t.value === investmentType)?.value || INVESTMENT_TYPES[0].value;
     const freqOption = FREQUENCIES.find(f => f.value === depositFrequency) || FREQUENCIES[0];
@@ -201,6 +225,8 @@ const SimulationInputScreen = () => {
       navigation.navigate('SimulationResults', { simData: res.data });
     } catch (error) {
       console.error('Simulation failed:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -232,7 +258,7 @@ const SimulationInputScreen = () => {
   // Height interpolation for smooth advanced section animation
   const heightInterpolation = advancedHeightAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 260],
+    outputRange: [0, 300],
   });
 
   // Format the preview estimated amount
@@ -442,7 +468,8 @@ const SimulationInputScreen = () => {
               style={[{ 
                 height: heightInterpolation,
                 opacity: advancedHeightAnim,
-                marginTop: 5
+                marginTop: 5,
+                marginBottom: showAdvanced ? 10 : 0
               }]}
             >
 
@@ -587,23 +614,38 @@ const SimulationInputScreen = () => {
                       !isValidInput() && styles.disabledButton
                     ]}
                     onPress={handleSimulate}
-                    disabled={!isValidInput()}
+                    disabled={!isValidInput() || isLoading}
                     activeOpacity={0.9}
                   >
-                    <Text style={styles.simulateButtonText}>
-                      Show Me Results
-                    </Text>
-                    <MaterialCommunityIcons 
-                      name="chart-line" 
-                      size={22} 
-                      color="#fff" 
-                      style={{marginRight: 8}}
-                    />
-                    <MaterialCommunityIcons 
-                      name="arrow-right-circle" 
-                      size={22} 
-                      color="#fff" 
-                    />
+                    {isLoading ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Animated.View style={{ transform: [{ rotate: spin }], marginRight: 10 }}>
+                        <MaterialCommunityIcons 
+                          name="loading" 
+                          size={22} 
+                          color="#fff"
+                        />
+                      </Animated.View>
+                      <Text style={styles.simulateButtonText}>Processing...</Text>
+                    </View>
+                    ) : (
+                      <>
+                        <Text style={styles.simulateButtonText}>
+                          Show Me Results
+                        </Text>
+                        <MaterialCommunityIcons 
+                          name="chart-line" 
+                          size={22} 
+                          color="#fff" 
+                          style={{ marginRight: 8 }}
+                        />
+                        <MaterialCommunityIcons 
+                          name="arrow-right-circle" 
+                          size={22} 
+                          color="#fff" 
+                        />
+                      </>
+                    )}
                   </TouchableOpacity>
                 </LinearGradient>
               </Animated.View>
@@ -876,7 +918,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 25,
   },
   buttonGradient: {
     borderRadius: 50,
