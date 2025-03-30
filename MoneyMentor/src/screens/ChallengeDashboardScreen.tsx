@@ -29,9 +29,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 const financeTheme = {
   ...colors,
   primary: {
-    DEFAULT: '#0A5687', // Deep blue for primary actions
-    light: '#D7E9F7',
-    dark: '#053A5F',
+    light: "#50C878", // Achieve's emerald-light shade
+    DEFAULT: "#008000", // Achieve's main emerald
+    dark: "#006400",
   },
   secondary: {
     DEFAULT: '#14B8A6', // Teal accent for secondary actions
@@ -248,8 +248,12 @@ const ChallengeCard = ({
   });
 
   const daysRemaining = getTimeRemaining(challenge.startDate, challenge.duration);
-  const progressPercent = getProgressPercentage(challenge.currentProgress, challenge.goal) / 100;
-  
+  const progressPercent = challenge.goal > 0 &&
+  Number.isFinite(challenge.currentProgress) &&
+  Number.isFinite(challenge.goal)
+    ? getProgressPercentage(challenge.currentProgress, challenge.goal) / 100
+    : 0;
+
   // Card background based on type
   const cardGradient = challenge.type === 'savings' 
     ? ['#0A5687', '#0E7490']
@@ -312,7 +316,7 @@ const ChallengeCard = ({
                 <View style={styles.progressStats}>
                   <Text style={styles.progressText}>Progress</Text>
                   <Text style={styles.progressAmount}>
-                    {challenge.currentProgress} / {challenge.goal} GHS
+                    {challenge.currentProgress ?? 0} / GH₵ {challenge.goal}
                   </Text>
                 </View>
                 
@@ -332,7 +336,7 @@ const ChallengeCard = ({
                 <View style={styles.detailsGrid}>
                   <View style={styles.detailItem}>
                     <Text style={styles.detailLabel}>Commitment</Text>
-                    <Text style={styles.detailValue}>{challenge.commitment}</Text>
+                    <Text style={styles.detailValue}>{challenge.commitment ?? "-"}</Text>
                   </View>
                   
                   <View style={styles.detailItem}>
@@ -388,14 +392,14 @@ const StatsCard = ({ stats }: {
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{stats.active}</Text>
-            <Text style={styles.statLabel}>Active</Text>
+            <Text style={styles.statLabel}>Active Challenges</Text>
           </View>
           
           <View style={styles.statDivider} />
           
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{stats.completed}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statLabel}>Completed Challenges</Text>
           </View>
         </View>
         
@@ -403,15 +407,15 @@ const StatsCard = ({ stats }: {
         
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{stats.totalSaved} GHS</Text>
+            <Text style={styles.statValue}>GH₵ {Number.isNaN(stats.totalSaved) ? 0 : stats.totalSaved}</Text>
             <Text style={styles.statLabel}>Total Saved</Text>
           </View>
           
           <View style={styles.statDivider} />
           
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{stats.projected} GHS</Text>
-            <Text style={styles.statLabel}>Projected</Text>
+            <Text style={styles.statValue}> GH₵ {Number.isNaN(stats.projected) ? 0 : stats.projected}</Text>
+            <Text style={styles.statLabel}>Projected Savings</Text>
           </View>
         </View>
       </View>
@@ -483,13 +487,16 @@ const getTimeRemaining = (startDateStr: string, durationDays: number) => {
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return isNaN(date.getTime()) ? "-" : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
 const formatCurrency = (value: number) => {
+  if (isNaN(value)) {
+    return "GH₵ 0";
+  }
   return value.toLocaleString('en-GH', {
     style: 'currency',
-    currency: 'GHS',
+    currency: 'GH₵',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   });
@@ -612,7 +619,7 @@ const ChallengeDashboardScreen = () => {
       >
         <Animated.View style={[headerStyle, { width: '100%' }]}>
           <View style={styles.headerTop}>
-            <Text style={styles.headerTitle}>Financial Challenges</Text>
+            <Text style={styles.headerTitle}>Micro Challenges</Text>
             <TouchableOpacity style={styles.profileButton}>
               <MaterialIcons name="account-circle" size={32} color={financeTheme.primary.light} />
             </TouchableOpacity>
@@ -620,7 +627,7 @@ const ChallengeDashboardScreen = () => {
           
           <View style={styles.headerContent}>
             <View style={styles.headerStat}>
-              <Text style={styles.headerStatLabel}>Current Saved</Text>
+              <Text style={styles.headerStatLabel}>Current Savings</Text>
               <Text style={styles.headerStatValue}>{formatCurrency(totalSaved)}</Text>
             </View>
             
@@ -631,8 +638,11 @@ const ChallengeDashboardScreen = () => {
               >
                 <Text style={styles.headerGraphLabel}>Goal Progress</Text>
                 <Text style={styles.headerGraphValue}>
-                  {totalGoal > 0 ? Math.round((totalSaved / totalGoal) * 100) : 0}%
-                </Text>
+                  {
+                    (totalGoal > 0 && Number.isFinite(totalSaved) && Number.isFinite(totalGoal))
+                      ? Math.round((totalSaved / totalGoal) * 100)
+                      : 0
+                  }%                </Text>
               </LinearGradient>
             </View>
           </View>
@@ -805,7 +815,7 @@ const styles = StyleSheet.create({
     statsContainer: {
       backgroundColor: 'white',
       borderRadius: 16,
-      marginTop: -20,
+      marginTop: 20,
       marginBottom: 20,
       shadowColor: '#047857',
       shadowOffset: { width: 0, height: 2 },
@@ -843,7 +853,7 @@ const styles = StyleSheet.create({
       marginBottom: 4,
     },
     statLabel: {
-      fontSize: 14,
+      fontSize: 12,
       color: '#6b7280',
     },
     statDivider: {

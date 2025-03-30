@@ -24,8 +24,8 @@ type RootStackParamList = {
     frequency: number;
   };
   ChallengeSetup: undefined;
+  ChallengeDashboardScreen: undefined;
 };
-
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 const HomeScreen = () => {
@@ -102,7 +102,7 @@ const HomeScreen = () => {
               title="Micro-Challenges"
               description="Build confidence with bite-sized financial wins"
               delay={200}
-              screenToNavigate="ChallengeSetup"
+              screenToNavigate="ChallengeDashboard"
             />
           </View>
         </View>

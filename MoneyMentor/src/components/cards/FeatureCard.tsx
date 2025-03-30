@@ -18,6 +18,7 @@ type RootStackParamList = {
     frequency: number;
   };
   ChallengeSetup: undefined;
+  ChallengeDashboard: undefined;
 };
 
 type FeatureCardNavigationProp = NativeStackNavigationProp<RootStackParamList>;
