@@ -4,7 +4,7 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { LineChart } from 'react-native-chart-kit';
+import { LineChart, BarChart, StackedBarChart } from 'react-native-chart-kit';
 
 import Container from '../components/layout/Container';
 import Button from '../components/ui/Button';
@@ -136,6 +136,29 @@ const SimulationResultsScreen = () => {
           strokeWidth: 3 
         }],
       };
+    // } else if (activeTab === 'compare') {
+    //   const idealData = ideal.growthData
+    //     .filter((_, i) => i % step === 0 || i === ideal.growthData.length - 1)
+    //     .map(point => point.amount);
+      
+    //   const realData = real.growthData
+    //     .filter((_, i) => i % step === 0 || i === real.growthData.length - 1)
+    //     .map(point => point.amount);
+      
+    //   // Calculate difference between ideal and real
+    //   const diffData = idealData.map((val, idx) => val - realData[idx]);
+      
+    //   return {
+    //     labels: generateLabels(),
+    //     datasets: [
+    //       { 
+    //         data: diffData,
+    //         color: (opacity = 1) => `rgba(249, 115, 22, ${opacity})`, // Orange for difference
+    //         strokeWidth: 4,
+    //         fillShadowGradientOpacity: 0.6,
+    //       }
+    //     ],
+    //   };
     } else {
       // For compare tab, ensure both datasets use the same x-axis points
       return {

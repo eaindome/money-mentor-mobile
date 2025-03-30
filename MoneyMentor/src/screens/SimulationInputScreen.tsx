@@ -220,7 +220,7 @@ const SimulationInputScreen = () => {
   
     try {
       console.log(`Simulating for fund: ${fund}, params:`, params);
-      const res = await axios.get(`https://347e-102-208-89-6.ngrok-free.app/simulations/sims/${fund}`, { params });
+      const res = await axios.get(`https://b267-102-208-89-6.ngrok-free.app/simulations/sims/${fund}`, { params });
       console.log(`Simulation response:`, res.data);
       navigation.navigate('SimulationResults', { simData: res.data });
     } catch (error) {

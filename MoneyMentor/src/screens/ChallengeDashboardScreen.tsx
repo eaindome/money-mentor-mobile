@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   Dimensions,
-  ImageBackground
+  Alert
 } from 'react-native';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
@@ -20,10 +20,14 @@ import Animated, {
   useAnimatedStyle, 
   withTiming, 
   Easing,
-  interpolateColor
+  interpolateColor,
 } from 'react-native-reanimated';
 import Confetti from 'react-native-confetti';
 import { LinearGradient } from 'expo-linear-gradient';
+
+// Import Svg components for the ProgressRing
+import Svg, { Circle } from 'react-native-svg';
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 // Enhanced Theme
 const financeTheme = {
@@ -86,7 +90,25 @@ type Challenge = {
   isCompleted: boolean;
   isNudged: boolean;
   commitment: string;
+  rawData?: any; // Store original data for debugging
 };
+
+interface ParsedChallenge {
+  id: string;
+  title: string;
+  description: string;
+  type: 'savings' | 'investment';
+  goal: number;
+  currentProgress: number;
+  duration: number;
+  startDate: string;
+  lastUpdated: string;
+  isCompleted: boolean;
+  isNudged: boolean;
+  commitment: string;
+  rawData: ChallengeData;
+  progress?: number; // Add progress property here
+}
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ChallengeDashboard'>;
 
@@ -316,7 +338,7 @@ const ChallengeCard = ({
                 <View style={styles.progressStats}>
                   <Text style={styles.progressText}>Progress</Text>
                   <Text style={styles.progressAmount}>
-                    {challenge.currentProgress ?? 0} / GH₵ {challenge.goal}
+                    GH₵ {isNaN(challenge.currentProgress) ? 0 : challenge.currentProgress} / GH₵ {challenge.goal}
                   </Text>
                 </View>
                 
@@ -483,7 +505,7 @@ const getTimeRemaining = (startDateStr: string, durationDays: number) => {
     endDate.setDate(startDate.getDate() + durationDays);
     const today = new Date();
     return Math.max(0, Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
-  };
+};
 
 const formatDate = (dateStr: string) => {
   const date = new Date(dateStr);
@@ -491,21 +513,102 @@ const formatDate = (dateStr: string) => {
 };
 
 const formatCurrency = (value: number) => {
-    if (isNaN(value) || value === undefined || value === null) {
-      return "GH₵0";
-    }
-    return `${value.toLocaleString('en-GH', {
-      style: 'currency',
-      currency: 'GHS', // Use the ISO 4217 code for Ghanaian Cedi
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).replace('GHS', '').trim()} `; // Remove 'GHS' and add 'GH₵' manually
-  };
+  if (isNaN(value) || value === undefined || value === null) {
+    return "GH₵0";
+  }
+  return `GH₵ ${value.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`;
+};
 
-// Import Svg components for the ProgressRing
-import Svg, { Circle } from 'react-native-svg';
-import { AnimatedProps } from 'react-native-reanimated';
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+// Parse challenge data from API response
+interface ChallengeData {
+  id: string | number;
+  generated_challenge: string;
+  challenge_type: string;
+  status: string;
+  challenge_duration?: number;
+  last_updated?: string;
+  progress?: number | string; // Add this field
+  financial_goal?: number | string; // Add this field also
+}
+
+interface ParsedChallenge {
+  id: string;
+  title: string;
+  description: string;
+  type: 'savings' | 'investment';
+  goal: number;
+  currentProgress: number;
+  duration: number;
+  startDate: string;
+  lastUpdated: string;
+  isCompleted: boolean;
+  isNudged: boolean;
+  commitment: string;
+  rawData: ChallengeData;
+}
+
+const parseChallengeData = (challengeData: ChallengeData): ParsedChallenge => {
+  // Extract title, description, and other data from the generated_challenge text
+  const titleMatch = challengeData.generated_challenge.match(/\*\*Challenge Title:\*\* (.*?)(?:\n|$)/);
+  const title = titleMatch ? titleMatch[1].trim() : 'Untitled Challenge';
+
+  // Extract daily/weekly task as description
+  let description = '';
+  const dailyTaskMatch = challengeData.generated_challenge.match(/\*\*Daily Task:\*\*([\s\S]*?)(?:\n\n\*\*|$)/);
+  const weeklyTaskMatch = challengeData.generated_challenge.match(/\*\*Weekly Task:\*\*([\s\S]*?)(?:\n\n\*\*|$)/);
+  const dailyWeeklyTaskMatch = challengeData.generated_challenge.match(/\*\*Daily\/Weekly Task:\*\*([\s\S]*?)(?:\n\n\*\*|$)/);
+  
+  if (dailyWeeklyTaskMatch) {
+    description = dailyWeeklyTaskMatch[1].trim();
+  } else if (dailyTaskMatch) {
+    description = dailyTaskMatch[1].trim();
+  } else if (weeklyTaskMatch) {
+    description = weeklyTaskMatch[1].trim();
+  }
+
+  // Extract financial goal
+  let goal = 500; // Default goal
+  const goalMatch = challengeData.generated_challenge.match(/goal of (?:GHS|GH₵)?\s*(\d+)/i);
+  if (goalMatch) {
+    goal = parseInt(goalMatch[1], 10);
+  }
+
+
+  // Current progress - assume 0 if not available
+  let currentProgress = 0;
+  if (challengeData.progress !== undefined && challengeData.progress !== null) {
+    // Convert to number if it's a string
+    currentProgress = typeof challengeData.progress === 'string' 
+      ? parseFloat(challengeData.progress) 
+      : challengeData.progress;
+  }
+
+  // Type based on challenge_type field
+  const type = challengeData.challenge_type.toLowerCase().includes('savings') ? 'savings' : 'investment';
+
+  // Determine if completed based on status field
+  const isCompleted = challengeData.status === 'completed';
+
+  return {
+    id: challengeData.id.toString(),
+    title,
+    description,
+    type,
+    goal,
+    currentProgress,
+    duration: challengeData.challenge_duration || 30,
+    startDate: challengeData.last_updated || new Date().toISOString(),
+    lastUpdated: challengeData.last_updated || new Date().toISOString(),
+    isCompleted,
+    progress: typeof challengeData.progress === 'string' ? parseFloat(challengeData.progress) : challengeData.progress || 0,
+    isNudged: false,
+    commitment: "Daily",
+    rawData: challengeData // Store original data for debugging
+  };
+};
 
 // Main component
 const ChallengeDashboardScreen = () => {
@@ -531,63 +634,103 @@ const ChallengeDashboardScreen = () => {
     };
   });
 
-  // Mock data - this would come from your API
+  // Fetch challenges from API
   useEffect(() => {
     const fetchChallenges = async () => {
       try {
-        const res = await axios.get('https://347e-102-208-89-6.ngrok-free.app/challenges/');
-        const mappedChallenges = res.data.map((c: any) => ({
-          id: c.id.toString(),
-          title: c.generated_challenge.match(/\*\*Challenge Title:\*\* (.*)/)?.[1] || 'Untitled',
-          description: c.generated_challenge.match(/\*\*Daily\/Weekly Task:\*\* (.*)/)?.[1] || '',
-          type: c.challenge_type.toLowerCase().includes('savings') ? 'savings' : 'investment',
-          // Fix the goal parsing:
-          goal: typeof c.financial_goal === 'number' ? c.financial_goal : 
-                (typeof c.financial_goal === 'string' ? 
-                 parseFloat(c.financial_goal.replace(/[^\d.]/g, '')) || 100 : 100),
-          // Ensure progress is a number:
-          currentProgress: typeof c.progress === 'number' ? c.progress : parseFloat(c.progress || 0),
-          duration: c.challenge_duration,
-          // Ensure dates exist:
-          startDate: c.last_updated || new Date().toISOString(),
-          lastUpdated: c.last_updated || new Date().toISOString(),
-          isCompleted: c.status === 'completed',
-          isNudged: c.nudged || false,
-          commitment: c.commitment_level,
-        }));
-        setChallenges(mappedChallenges);
+        const res = await axios.get('https://b267-102-208-89-6.ngrok-free.app/challenges/');
+        console.log(`res: ${JSON.stringify(res.data)}`);
+        
+        if (Array.isArray(res.data)) {
+          const mappedChallenges = res.data.map(challenge => parseChallengeData(challenge));
+          setChallenges(mappedChallenges);
+        } else {
+          console.error('Expected array but received:', res.data);
+          setChallenges([]);
+        }
       } catch (error) {
         console.error('Failed to fetch challenges:', error);
+        Alert.alert(
+          'Error',
+          'Failed to load challenges. Please check your connection and try again.',
+          [{ text: 'OK' }]
+        );
       } finally {
         setLoading(false);
       }
     };
+    
     fetchChallenges();
   }, []);
 
   const updateChallengeProgress = async (id: string) => {
     try {
-      const res = await axios.post(`https://347e-102-208-89-6.ngrok-free.app/challenges/update-progress/${id}`);
-      setChallenges(prev =>
-        prev.map(c =>
-          c.id === id
-            ? {
-                ...c,
-                currentProgress: Number(res.data.progress),
-                isCompleted: res.data.status === 'completed',
-                lastUpdated: new Date().toISOString().split('T')[0],
-                isNudged: false,
+      setLoading(true);
+      console.log("Updating challenge:", id);
+      
+      const res = await axios.post(`https://5543-102-208-89-6.ngrok-free.app/challenges/update-progress/${id}`);
+      console.log("Backend response:", res.data);
+      
+      // If you want to update challenges immediately without refetching
+      setChallenges(prevChallenges => {
+        return prevChallenges.map(challenge => {
+          if (challenge.id === id) {
+            // Extract the new progress value from response
+            let newProgress = challenge.currentProgress;
+            
+            // Check if progress data is available in response
+            if (res.data.progress) {
+              // Parse the progress if it's in format "X/Y days"
+              const progressMatch = res.data.progress.match(/(\d+(?:\.\d+)?)\//);
+              if (progressMatch) {
+                newProgress = parseFloat(progressMatch[1]);
               }
-            : c
-        )
-      );
-      if (res.data.status === 'completed') {
-        setShowConfetti(true);
-        confettiRef.current?.startConfetti();
-        setTimeout(() => confettiRef.current?.stopConfetti(), 3000);
+            }
+            
+            // Check if challenge is completed
+            const isCompleted = res.data.status === "completed";
+            
+            // If challenge is newly completed, trigger confetti
+            if (isCompleted && !challenge.isCompleted) {
+              setShowConfetti(true);
+              confettiRef.current?.startConfetti();
+              setTimeout(() => confettiRef.current?.stopConfetti(), 3000);
+            }
+            
+            return {
+              ...challenge,
+              currentProgress: newProgress,
+              progress: newProgress, // Update both values
+              isCompleted: isCompleted,
+              lastUpdated: new Date().toISOString(),
+            };
+          }
+          return challenge;
+        });
+      });
+      
+      // Then refresh from server to ensure data consistency
+      const refreshRes = await axios.get('https://5543-102-208-89-6.ngrok-free.app/challenges/');
+      if (Array.isArray(refreshRes.data)) {
+        const updatedChallenges = refreshRes.data.map(challenge => parseChallengeData(challenge));
+        setChallenges(updatedChallenges);
       }
+      
+      Alert.alert(
+        'Success',
+        'Challenge progress updated successfully!',
+        [{ text: 'OK' }]
+      );
+  
     } catch (error) {
       console.error('Failed to update progress:', error);
+      Alert.alert(
+        'Error',
+        'Failed to update challenge progress. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -647,7 +790,8 @@ const ChallengeDashboardScreen = () => {
                     (totalGoal > 0 && Number.isFinite(totalSaved) && Number.isFinite(totalGoal))
                       ? Math.round((totalSaved / totalGoal) * 100)
                       : 0
-                  }%                </Text>
+                  }%
+                </Text>
               </LinearGradient>
             </View>
           </View>
@@ -706,7 +850,7 @@ const ChallengeDashboardScreen = () => {
         ) : (
           <View style={styles.emptyContainer}>
             <FontAwesome5 name="piggy-bank" size={60} color={financeTheme.neutral[300]} />
-            <Text style={styles.emptyTitle}>No {activeFilter} challenges yet</Text>
+            <Text style={styles.emptyTitle}>No challenges yet</Text>
             <Text style={styles.emptyText}>
               Start your financial journey by creating your first challenge!
             </Text>
@@ -1111,4 +1255,3 @@ const styles = StyleSheet.create({
   
  export default ChallengeDashboardScreen;
 import { useAnimatedProps } from 'react-native-reanimated';
-  

@@ -239,7 +239,7 @@ const ChallengeSetupScreen = () => {
           };
           try {
             console.log('testing create challenge...');
-            const res = await axios.post('https://347e-102-208-89-6.ngrok-free.app/challenges/', payload);
+            const res = await axios.post('https://5543-102-208-89-6.ngrok-free.app/challenges/', payload);
             console.log('Challenge created:', res.data);
             navigation.navigate('ChallengeDashboard');
           } catch (error) {
