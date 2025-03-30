@@ -238,7 +238,8 @@ const ChallengeSetupScreen = () => {
             Monthly_income: formData.Monthly_income,
           };
           try {
-            const res = await axios.post('http://localhost:8000/challenges/', payload);
+            console.log('testing create challenge...');
+            const res = await axios.post('https://347e-102-208-89-6.ngrok-free.app/challenges/', payload);
             console.log('Challenge created:', res.data);
             navigation.navigate('ChallengeDashboard');
           } catch (error) {

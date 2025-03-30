@@ -86,7 +86,8 @@ const SimulationResultsScreen = () => {
     ]).start();
   }, [simData]);
 
-  const step = Math.max(1, Math.floor(simData.days / 5)); // 5 points max
+  // Calculate an appropriate step size based on the number of days
+  const step = Math.max(1, Math.floor(simData.days / 6)); // Show about 6 labels on the x-axis
 
   const getChartData = () => {
     const { ideal, real } = results;
@@ -94,22 +95,57 @@ const SimulationResultsScreen = () => {
     const idealColor = investment?.color || colors.emerald.DEFAULT;
     const realColor = '#F59E0B';
 
+    // Create labels for x-axis (days)
+    const generateLabels = () => {
+      // Generate labels at regular intervals plus the last day
+      const intervalLabels = [];
+      for (let i = 0; i <= simData.days; i += step) {
+        if (i <= simData.days) {
+          intervalLabels.push(i.toString());
+        }
+      }
+      
+      // Make sure the last day is included
+      if (!intervalLabels.includes(simData.days.toString())) {
+        intervalLabels.push(simData.days.toString());
+      }
+      
+      return intervalLabels;
+    };
+
     if (activeTab === 'ideal') {
       return {
-        labels: ideal.growthData.filter((_, i) => i % step === 0 || i === ideal.growthData.length - 1).map((_, i) => `${i * step}`),
-        datasets: [{ data: ideal.growthData.map(point => point.amount), color: () => idealColor, strokeWidth: 3 }],
+        labels: generateLabels(),
+        datasets: [{ 
+          data: ideal.growthData.filter((_, i) => i % step === 0 || i === ideal.growthData.length - 1).map(point => point.amount), 
+          color: () => idealColor, 
+          strokeWidth: 3 
+        }],
       };
     } else if (activeTab === 'real') {
       return {
-        labels: real.growthData.map(point => `${point.day}`),
-        datasets: [{ data: real.growthData.map(point => point.amount), color: () => realColor, strokeWidth: 3 }],
+        labels: generateLabels(),
+        datasets: [{ 
+          data: real.growthData.filter((_, i) => i % step === 0 || i === real.growthData.length - 1).map(point => point.amount), 
+          color: () => realColor, 
+          strokeWidth: 3 
+        }],
       };
     } else {
+      // For compare tab, ensure both datasets use the same x-axis points
       return {
-        labels: ideal.growthData.map((_, i) => `${i * Math.floor(simData.days / (ideal.growthData.length - 1))}`),
+        labels: generateLabels(),
         datasets: [
-          { data: ideal.growthData.map(point => point.amount), color: () => idealColor, strokeWidth: 3 },
-          { data: real.growthData.map(point => point.amount), color: () => realColor, strokeWidth: 3 },
+          { 
+            data: ideal.growthData.filter((_, i) => i % step === 0 || i === ideal.growthData.length - 1).map(point => point.amount), 
+            color: () => idealColor, 
+            strokeWidth: 3 
+          },
+          { 
+            data: real.growthData.filter((_, i) => i % step === 0 || i === real.growthData.length - 1).map(point => point.amount), 
+            color: () => realColor, 
+            strokeWidth: 3 
+          },
         ],
       };
     }
@@ -206,7 +242,7 @@ const SimulationResultsScreen = () => {
                   withInnerLines={false}
                   withOuterLines={false}
                   withHorizontalLabels={true}
-                  withVerticalLabels={false}
+                  withVerticalLabels={true}
                   fromZero={false}
                   chartConfig={{
                     backgroundColor: '#ffffff',
@@ -539,4 +575,3 @@ const styles = StyleSheet.create({
 });
 
 export default SimulationResultsScreen;
-

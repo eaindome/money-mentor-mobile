@@ -195,7 +195,9 @@ const SimulationInputScreen = () => {
     };
   
     try {
-      const res = await axios.get(`http://localhost:8000/simulations/sims/${fund}`, { params });
+      console.log(`Simulating for fund: ${fund}, params:`, params);
+      const res = await axios.get(`https://347e-102-208-89-6.ngrok-free.app/simulations/sims/${fund}`, { params });
+      console.log(`Simulation response:`, res.data);
       navigation.navigate('SimulationResults', { simData: res.data });
     } catch (error) {
       console.error('Simulation failed:', error);

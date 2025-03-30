@@ -528,7 +528,7 @@ const ChallengeDashboardScreen = () => {
   useEffect(() => {
     const fetchChallenges = async () => {
       try {
-        const res = await axios.get('http://localhost:8000/challenges/');
+        const res = await axios.get('https://347e-102-208-89-6.ngrok-free.app/challenges/');
         const mappedChallenges = res.data.map((c: any) => ({
           id: c.id.toString(),
           title: c.generated_challenge.match(/\*\*Challenge Title:\*\* (.*)/)?.[1] || 'Untitled',
