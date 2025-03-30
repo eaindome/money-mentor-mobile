@@ -541,11 +541,16 @@ const ChallengeDashboardScreen = () => {
           title: c.generated_challenge.match(/\*\*Challenge Title:\*\* (.*)/)?.[1] || 'Untitled',
           description: c.generated_challenge.match(/\*\*Daily\/Weekly Task:\*\* (.*)/)?.[1] || '',
           type: c.challenge_type.toLowerCase().includes('savings') ? 'savings' : 'investment',
-          goal: typeof c.financial_goal === 'string' ? Number(c.financial_goal.match(/(\d+)/)?.[1]) || 100 : c.financial_goal || 100,
-          currentProgress: c.progress,
+          // Fix the goal parsing:
+          goal: typeof c.financial_goal === 'number' ? c.financial_goal : 
+                (typeof c.financial_goal === 'string' ? 
+                 parseFloat(c.financial_goal.replace(/[^\d.]/g, '')) || 100 : 100),
+          // Ensure progress is a number:
+          currentProgress: typeof c.progress === 'number' ? c.progress : parseFloat(c.progress || 0),
           duration: c.challenge_duration,
-          startDate: c.created_at || new Date().toISOString().split('T')[0],
-          lastUpdated: c.last_updated || c.created_at,
+          // Ensure dates exist:
+          startDate: c.last_updated || new Date().toISOString(),
+          lastUpdated: c.last_updated || new Date().toISOString(),
           isCompleted: c.status === 'completed',
           isNudged: c.nudged || false,
           commitment: c.commitment_level,
@@ -562,7 +567,7 @@ const ChallengeDashboardScreen = () => {
 
   const updateChallengeProgress = async (id: string) => {
     try {
-      const res = await axios.post(`http://localhost:8000/challenges/update-progress/${id}`);
+      const res = await axios.post(`https://347e-102-208-89-6.ngrok-free.app/challenges/update-progress/${id}`);
       setChallenges(prev =>
         prev.map(c =>
           c.id === id

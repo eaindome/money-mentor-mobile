@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+// import MoneyMentorMascot from '../../assets/money-mentor-mascot';
 
 import Container from '../components/layout/Container';
 import Logo from '../components/ui/Logo';
@@ -48,10 +49,6 @@ const HomeScreen = () => {
     ]).start();
   }, []);
 
-  const handleGetStarted = () => {
-    navigation.navigate('Quiz');
-  };
-
   return (
     <Container>
       <LinearGradient
@@ -76,16 +73,13 @@ const HomeScreen = () => {
               { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
             ]}
           >
-            <View style={styles.illustrationContainer}>
-              <Image 
-                // source={require('../assets/money-mentor-mascot.png')} 
-                style={styles.image}
-              />
-              <View style={styles.badge}>
-                <MaterialCommunityIcons name="shield-check" size={18} color={colors.white} />
-                <Text style={styles.badgeText}>Safe & Guided</Text>
-              </View>
+          <View style={styles.illustrationContainer}>
+            {/* <MoneyMentorMascot width={220} height={220} /> */}
+            <View style={styles.badge}>
+              <MaterialCommunityIcons name="shield-check" size={18} color={colors.white} />
+              <Text style={styles.badgeText}>Safe & Guided</Text>
             </View>
+          </View>
           </Animated.View>
 
           {/* Feature Cards */}
