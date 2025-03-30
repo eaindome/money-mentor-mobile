@@ -491,16 +491,16 @@ const formatDate = (dateStr: string) => {
 };
 
 const formatCurrency = (value: number) => {
-  if (isNaN(value)) {
-    return "GH₵ 0";
-  }
-  return value.toLocaleString('en-GH', {
-    style: 'currency',
-    currency: 'GH₵',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
-};
+    if (isNaN(value) || value === undefined || value === null) {
+      return "GH₵ 0";
+    }
+    return `GH₵ ${value.toLocaleString('en-GH', {
+      style: 'currency',
+      currency: 'GHS', // Use the ISO 4217 code for Ghanaian Cedi
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).replace('GHS', '').trim()}`; // Remove 'GHS' and add 'GH₵' manually
+  };
 
 // Import Svg components for the ProgressRing
 import Svg, { Circle } from 'react-native-svg';

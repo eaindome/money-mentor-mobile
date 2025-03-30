@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Dimensions, Linking } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -42,6 +42,11 @@ const INVESTMENT_TYPES = [
 
 const formatCurrency = (value: number): string => `GHS ${value.toFixed(2)}`;
 const formatPercentage = (value: number): string => `${(value * 100).toFixed(1)}%`;
+
+const openAnotherApp = () => {
+  const appUrl = 'market://details?id=com.achieve.app'; // Replace with the package name of the app
+  Linking.openURL(appUrl).catch((err) => console.error('An error occurred', err));
+};
 
 const SimulationResultsScreen = () => {
   const navigation = useNavigation<SimulationResultsScreenNavigationProp>();
@@ -152,7 +157,7 @@ const SimulationResultsScreen = () => {
   };
 
   const handleRetry = () => navigation.goBack();
-  const handleRealInvestment = () => navigation.navigate('Home');
+  // const handleRealInvestment = () => navigation.navigate('Home');
 
   const getResultIcon = () => {
     if (results.difference.amount > 0) {
@@ -287,7 +292,7 @@ const SimulationResultsScreen = () => {
 
             <Animated.View style={[styles.buttonContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <Button title="Try New Values" onPress={handleRetry} variant="outline" size="medium" />
-              <Button title="Invest For Real" onPress={handleRealInvestment} variant="primary" size="medium" />
+              <Button title="Invest For Real" onPress={openAnotherApp} variant="primary" size="medium" />
             </Animated.View>
 
             <Text style={styles.helperText}>
